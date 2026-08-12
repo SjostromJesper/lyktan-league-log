@@ -262,6 +262,24 @@ async function respondToReport(action: 'confirm' | 'dispute') {
         Du rapporterade resultatet. Väntar på att {{ profileName(opponentId!) }} bekräftar.
       </div>
 
+      <!-- Active match: disputed, waiting on admin -->
+      <div v-else-if="myActiveMatch && myActiveMatch.status === 'disputed'" class="rounded-lg border border-wh-accent/50 bg-wh-surface p-6">
+        <h2 class="text-lg font-medium text-wh-accent">Matchen är bestridd</h2>
+        <p class="mt-1 text-sm text-wh-ink">
+          Resultatet mot {{ profileName(opponentId!) }} bestreds och väntar på att en admin löser det.
+        </p>
+        <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
+          <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">
+            <p class="text-wh-mute">Du</p>
+            <p class="text-wh-ink">{{ myVp }} VP</p>
+          </div>
+          <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">
+            <p class="text-wh-mute">{{ profileName(opponentId!) }}</p>
+            <p class="text-wh-ink">{{ opponentVp }} VP</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Ready, waiting to be paired -->
       <div v-else-if="mySignup" class="rounded-lg border border-wh-border bg-wh-surface p-6 text-wh-mute">
         Du är anmäld som redo och väntar på att bli lottad mot en motståndare.

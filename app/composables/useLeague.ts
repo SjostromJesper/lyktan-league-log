@@ -101,7 +101,7 @@ export function useLeague() {
       matches.value.find(
         m =>
           (m.player1_id === currentUserId.value || m.player2_id === currentUserId.value) &&
-          (m.status === 'pending' || m.status === 'reported')
+          (m.status === 'pending' || m.status === 'reported' || m.status === 'disputed')
       ) ?? null
   )
 
@@ -304,8 +304,13 @@ export function useLeague() {
     await refresh()
   }
 
-  async function resolveDispute(matchId: string, action: 'confirm' | 'void') {
-    const { error } = await supabase.rpc('admin_resolve_match', { p_match_id: matchId, p_action: action })
+  async function resolveDispute(matchId: string, action: 'confirm' | 'void', player1Vp?: number, player2Vp?: number) {
+    const { error } = await supabase.rpc('admin_resolve_match', {
+      p_match_id: matchId,
+      p_action: action,
+      p_player1_vp: player1Vp ?? null,
+      p_player2_vp: player2Vp ?? null
+    })
     if (error) throw new Error(error.message)
     await refresh()
   }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { League, Signup } from '~/types'
+import type { League, Match, Signup } from '~/types'
 
 definePageMeta({ middleware: 'admin' })
 
@@ -283,6 +283,37 @@ async function handleManualPair(opponentId: string) {
     rematchFor.value = null
   } catch (e) {
     pairError.value = e instanceof Error ? e.message : 'Något gick fel.'
+  }
+}
+
+const disputeEdits = reactive<Record<string, { p1: number; p2: number }>>({})
+const disputeError = ref('')
+
+function editsFor(m: Match) {
+  if (!disputeEdits[m.id]) {
+    disputeEdits[m.id] = { p1: m.player1_vp ?? 0, p2: m.player2_vp ?? 0 }
+  }
+  return disputeEdits[m.id]
+}
+
+async function handleResolveDispute(m: Match) {
+  disputeError.value = ''
+  const edits = editsFor(m)
+  try {
+    await resolveDispute(m.id, 'confirm', edits.p1, edits.p2)
+    delete disputeEdits[m.id]
+  } catch (e) {
+    disputeError.value = e instanceof Error ? e.message : 'Något gick fel.'
+  }
+}
+
+async function handleVoidDispute(matchId: string) {
+  disputeError.value = ''
+  try {
+    await resolveDispute(matchId, 'void')
+    delete disputeEdits[matchId]
+  } catch (e) {
+    disputeError.value = e instanceof Error ? e.message : 'Något gick fel.'
   }
 }
 </script>
@@ -668,29 +699,45 @@ async function handleManualPair(opponentId: string) {
 
     <section v-if="disputedMatches.length" class="rounded-lg border border-wh-border bg-wh-surface p-6">
       <h2 class="mb-4 text-lg font-medium text-wh-ink">Bestridda matcher</h2>
+      <p v-if="disputeError" class="mb-3 text-sm text-wh-accent">{{ disputeError }}</p>
       <ul class="space-y-3">
-        <li
-          v-for="m in disputedMatches"
-          :key="m.id"
-          class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-wh-border p-3 text-sm"
-        >
-          <span class="text-wh-ink">
-            {{ profileName(m.player1_id) }} {{ m.player1_vp }} VP – {{ m.player2_vp }} VP {{ profileName(m.player2_id) }}
+        <li v-for="m in disputedMatches" :key="m.id" class="rounded-md border border-wh-border p-3 text-sm">
+          <p class="text-wh-mute">
+            Rapporterat av {{ profileName(m.reporter_id!) }}: {{ m.player1_vp }} VP – {{ m.player2_vp }} VP
             (League Points {{ m.player1_league_points }}–{{ m.player2_league_points }})
-            — rapporterat av {{ profileName(m.reporter_id!) }}
-          </span>
-          <div class="flex gap-2">
+          </p>
+          <div class="mt-3 grid grid-cols-2 gap-3 sm:max-w-sm">
+            <div>
+              <label class="mb-1 block text-xs text-wh-mute">{{ profileName(m.player1_id) }} VP</label>
+              <input
+                v-model.number="editsFor(m).p1"
+                type="number"
+                min="0"
+                class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+              >
+            </div>
+            <div>
+              <label class="mb-1 block text-xs text-wh-mute">{{ profileName(m.player2_id) }} VP</label>
+              <input
+                v-model.number="editsFor(m).p2"
+                type="number"
+                min="0"
+                class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+              >
+            </div>
+          </div>
+          <div class="mt-3 flex gap-2">
             <button
               type="button"
               class="rounded-md bg-wh-accent px-3 py-1.5 text-wh-ink hover:bg-wh-accent-hover"
-              @click="resolveDispute(m.id, 'confirm')"
+              @click="handleResolveDispute(m)"
             >
-              Godkänn rapporterat resultat
+              Godkänn med dessa poäng
             </button>
             <button
               type="button"
               class="rounded-md border border-wh-border px-3 py-1.5 text-wh-mute hover:border-wh-accent hover:text-wh-accent"
-              @click="resolveDispute(m.id, 'void')"
+              @click="handleVoidDispute(m.id)"
             >
               Häv matchen
             </button>

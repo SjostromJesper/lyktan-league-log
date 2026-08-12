@@ -25,7 +25,7 @@ async function handleLogout() {
     <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
       <NuxtLink to="/" class="flex items-center gap-2 text-lg font-semibold tracking-wide text-wh-ink">
         <span class="text-wh-accent">⚔</span>
-        Warhammer Helper
+        Lyktan League Log
       </NuxtLink>
 
       <nav v-if="user" class="flex flex-wrap items-center gap-4 text-sm text-wh-mute">

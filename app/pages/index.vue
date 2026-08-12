@@ -20,6 +20,8 @@ const showConfirmModal = ref(false)
 const signupError = ref('')
 const signupSubmitting = ref(false)
 
+const openList = ref<'mine' | 'opponent' | null>(null)
+
 const myVpDraft = ref<number | null>(null)
 const opponentVpDraft = ref<number | null>(null)
 const reportError = ref('')
@@ -164,17 +166,36 @@ async function respondToReport(action: 'confirm' | 'dispute') {
       <div v-if="myActiveMatch" class="rounded-lg border border-wh-border bg-wh-surface p-6">
         <h2 class="text-lg font-medium text-wh-ink">Listor</h2>
         <p class="mt-1 text-sm text-wh-mute">Motståndare: {{ profileName(opponentId!) }}</p>
-        <div class="mt-3 grid gap-3 sm:grid-cols-2">
-          <div>
-            <p class="mb-1 text-xs text-wh-mute">Din lista</p>
-            <pre class="whitespace-pre-wrap rounded-md border border-wh-border bg-wh-surface-alt p-3 text-sm text-wh-ink">{{ myList }}</pre>
-          </div>
-          <div>
-            <p class="mb-1 text-xs text-wh-mute">{{ profileName(opponentId!) }}s lista</p>
-            <pre class="whitespace-pre-wrap rounded-md border border-wh-border bg-wh-surface-alt p-3 text-sm text-wh-ink">{{ opponentList }}</pre>
-          </div>
+        <div class="mt-3 flex flex-wrap gap-3">
+          <button
+            type="button"
+            class="rounded-md border border-wh-border px-3 py-1.5 text-sm text-wh-ink hover:border-wh-accent"
+            @click="openList = 'mine'"
+          >
+            Visa din lista
+          </button>
+          <button
+            type="button"
+            class="rounded-md border border-wh-border px-3 py-1.5 text-sm text-wh-ink hover:border-wh-accent"
+            @click="openList = 'opponent'"
+          >
+            Visa {{ profileName(opponentId!) }}s lista
+          </button>
         </div>
       </div>
+
+      <ListModal
+        v-if="openList === 'mine'"
+        title="Din lista"
+        :army-list="myList"
+        @close="openList = null"
+      />
+      <ListModal
+        v-if="openList === 'opponent'"
+        :title="`${profileName(opponentId!)}s lista`"
+        :army-list="opponentList"
+        @close="openList = null"
+      />
 
       <!-- Active match: waiting for report -->
       <div v-if="myActiveMatch && myActiveMatch.status === 'pending'" class="rounded-lg border border-wh-border bg-wh-surface p-6">

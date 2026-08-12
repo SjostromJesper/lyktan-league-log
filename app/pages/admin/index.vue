@@ -180,16 +180,25 @@ async function handleDelete(leagueId: string) {
 }
 
 const newEmail = ref('')
+const newPassword = ref('')
 const newName = ref('')
 const newArmy = ref('')
 const selectedLeagueIds = ref<string[]>([])
 const createUserError = ref('')
-const createUserMessage = ref('')
 const creatingUser = ref(false)
+
+interface CreatedAccount {
+  name: string
+  email: string
+  password: string
+}
+
+const lastCreatedAccount = ref<CreatedAccount | null>(null)
+const copyMessage = ref('')
 
 async function submitCreateUser() {
   createUserError.value = ''
-  createUserMessage.value = ''
+  lastCreatedAccount.value = null
   creatingUser.value = true
   try {
     const {
@@ -198,7 +207,7 @@ async function submitCreateUser() {
     const result = await $fetch<{ id: string }>('/api/admin/create-user', {
       method: 'POST',
       headers: { Authorization: `Bearer ${session?.access_token}` },
-      body: { email: newEmail.value, name: newName.value, army: newArmy.value }
+      body: { email: newEmail.value, password: newPassword.value, name: newName.value, army: newArmy.value }
     })
     await refreshProfiles()
     if (result.id) {
@@ -206,8 +215,9 @@ async function submitCreateUser() {
         await addMemberToLeague(result.id, leagueId)
       }
     }
-    createUserMessage.value = `Inbjudan skickades till ${newEmail.value}.`
+    lastCreatedAccount.value = { name: newName.value, email: newEmail.value, password: newPassword.value }
     newEmail.value = ''
+    newPassword.value = ''
     newName.value = ''
     newArmy.value = ''
     selectedLeagueIds.value = []
@@ -216,6 +226,18 @@ async function submitCreateUser() {
     createUserError.value = err.data?.statusMessage ?? err.message ?? 'Något gick fel.'
   } finally {
     creatingUser.value = false
+  }
+}
+
+async function copyCredentials() {
+  if (!lastCreatedAccount.value) return
+  const { name, email, password } = lastCreatedAccount.value
+  const text = `Hej ${name}! Ditt konto till Lyktan League Log:\nE-post: ${email}\nLösenord: ${password}\n\nLogga in och byt lösenord under Inställningar.`
+  try {
+    await navigator.clipboard.writeText(text)
+    copyMessage.value = 'Kopierat!'
+  } catch {
+    copyMessage.value = 'Kunde inte kopiera automatiskt, markera texten manuellt.'
   }
 }
 
@@ -454,7 +476,10 @@ async function handleManualPair(opponentId: string) {
 
     <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
       <h2 class="mb-4 text-lg font-medium text-wh-ink">Skapa spelarkonto</h2>
-      <p class="mb-4 text-sm text-wh-mute">Spelaren får ett mail med en länk för att sätta sitt eget lösenord.</p>
+      <p class="mb-4 text-sm text-wh-mute">
+        Sätt ett tillfälligt lösenord och dela det själv med spelaren (Discord, SMS, i person). Spelaren måste byta
+        det vid första inloggning.
+      </p>
       <form class="grid gap-3 sm:grid-cols-2" @submit.prevent="submitCreateUser">
         <div>
           <label class="mb-1 block text-sm text-wh-mute">Namn</label>
@@ -482,6 +507,16 @@ async function handleManualPair(opponentId: string) {
             class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
           >
         </div>
+        <div>
+          <label class="mb-1 block text-sm text-wh-mute">Tillfälligt lösenord</label>
+          <input
+            v-model="newPassword"
+            type="text"
+            required
+            minlength="6"
+            class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+          >
+        </div>
         <div class="sm:col-span-2">
           <label class="mb-1 block text-sm text-wh-mute">Lägg till i ligor (valfritt)</label>
           <div class="space-y-1">
@@ -495,15 +530,30 @@ async function handleManualPair(opponentId: string) {
           </div>
         </div>
         <p v-if="createUserError" class="text-sm text-wh-accent sm:col-span-2">{{ createUserError }}</p>
-        <p v-if="createUserMessage" class="text-sm text-emerald-500 sm:col-span-2">{{ createUserMessage }}</p>
         <button
           type="submit"
           :disabled="creatingUser"
           class="rounded-md bg-wh-accent px-4 py-2 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover disabled:opacity-50 sm:col-span-2"
         >
-          {{ creatingUser ? 'Skickar...' : 'Skicka inbjudan' }}
+          {{ creatingUser ? 'Skapar...' : 'Skapa konto' }}
         </button>
       </form>
+
+      <div v-if="lastCreatedAccount" class="mt-4 rounded-md border border-wh-gold/50 bg-wh-surface-alt p-4 text-sm">
+        <p class="text-wh-ink">
+          Kontot för <span class="font-medium">{{ lastCreatedAccount.name }}</span> skapades. Dela inloggningen:
+        </p>
+        <p class="mt-2 text-wh-mute">E-post: {{ lastCreatedAccount.email }}</p>
+        <p class="text-wh-mute">Lösenord: {{ lastCreatedAccount.password }}</p>
+        <button
+          type="button"
+          class="mt-3 rounded-md border border-wh-border px-3 py-1.5 text-xs text-wh-ink hover:border-wh-accent hover:text-wh-accent"
+          @click="copyCredentials"
+        >
+          Kopiera meddelande
+        </button>
+        <span v-if="copyMessage" class="ml-2 text-xs text-wh-mute">{{ copyMessage }}</span>
+      </div>
     </section>
 
     <section class="rounded-lg border border-wh-border bg-wh-surface p-6">

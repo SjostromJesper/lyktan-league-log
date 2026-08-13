@@ -3,6 +3,7 @@ const { profile, refresh, updateProfile, changePassword } = useProfile()
 
 const name = ref('')
 const army = ref('')
+const discord = ref('')
 const profileMessage = ref('')
 const profileError = ref('')
 const profileSubmitting = ref(false)
@@ -17,11 +18,13 @@ onMounted(async () => {
   if (!profile.value) await refresh()
   name.value = profile.value?.name ?? ''
   army.value = profile.value?.army ?? ''
+  discord.value = profile.value?.discord ?? ''
 })
 
 watch(profile, p => {
   name.value = p?.name ?? ''
   army.value = p?.army ?? ''
+  discord.value = p?.discord ?? ''
 })
 
 async function saveProfile() {
@@ -29,7 +32,7 @@ async function saveProfile() {
   profileMessage.value = ''
   profileSubmitting.value = true
   try {
-    await updateProfile({ name: name.value, army: army.value })
+    await updateProfile({ name: name.value, army: army.value, discord: discord.value })
     profileMessage.value = 'Sparat.'
   } catch (e) {
     profileError.value = e instanceof Error ? e.message : 'Något gick fel.'
@@ -83,6 +86,16 @@ async function savePassword() {
             placeholder="T.ex. Space Marines"
             class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
           >
+        </div>
+        <div>
+          <label class="mb-1 block text-sm text-wh-mute">Discord-namn</label>
+          <input
+            v-model="discord"
+            type="text"
+            placeholder="T.ex. jesper#1234"
+            class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+          >
+          <p class="mt-1 text-xs text-wh-mute">Syns för alla i ligan, så det är lätt att höra av sig.</p>
         </div>
         <p v-if="profileError" class="text-sm text-wh-accent">{{ profileError }}</p>
         <p v-if="profileMessage" class="text-sm text-emerald-500">{{ profileMessage }}</p>

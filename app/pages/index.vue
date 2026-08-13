@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { profile } = useProfile()
-const { profiles, refresh: refreshProfiles, name: profileName } = useProfiles()
+const { profiles, refresh: refreshProfiles, name: profileName, byId } = useProfiles()
 const {
   selectedLeague,
   isMember,
@@ -40,6 +40,8 @@ const opponentId = computed(() => {
     ? myActiveMatch.value.player2_id
     : myActiveMatch.value.player1_id
 })
+
+const opponentDiscord = computed(() => (opponentId.value ? byId(opponentId.value)?.discord ?? '' : ''))
 
 const myList = computed(() => {
   if (!myActiveMatch.value || !currentUserId.value) return ''
@@ -166,6 +168,7 @@ async function respondToReport(action: 'confirm' | 'dispute') {
       <div v-if="myActiveMatch" class="rounded-lg border border-wh-border bg-wh-surface p-6">
         <h2 class="text-lg font-medium text-wh-ink">Listor</h2>
         <p class="mt-1 text-sm text-wh-mute">Motståndare: {{ profileName(opponentId!) }}</p>
+        <p v-if="opponentDiscord" class="text-sm text-wh-mute">Discord: {{ opponentDiscord }}</p>
         <div class="mt-3 flex flex-wrap gap-3">
           <button
             type="button"

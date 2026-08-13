@@ -16,7 +16,12 @@ export function useProfile() {
     profile.value = (data as Profile) ?? null
   }
 
-  async function updateProfile(fields: { name?: string; army?: string; password_change_required?: boolean }) {
+  async function updateProfile(fields: {
+    name?: string
+    army?: string
+    discord?: string
+    password_change_required?: boolean
+  }) {
     if (!userId.value) throw new Error('Du är inte inloggad.')
     const { error } = await supabase.from('profiles').update(fields).eq('id', userId.value)
     if (error) throw new Error(error.message)

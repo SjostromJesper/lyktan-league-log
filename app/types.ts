@@ -5,6 +5,7 @@ export interface Profile {
   email: string
   name: string
   army: string
+  discord: string
   role: UserRole
   password_change_required: boolean
   created_at: string

@@ -81,6 +81,7 @@ const groupedByLeague = computed(() => {
       <div>
         <h1 class="text-2xl font-semibold text-wh-ink">{{ player.name }}</h1>
         <p v-if="player.army" class="mt-1 text-sm text-wh-mute">{{ player.army }}</p>
+        <p v-if="player.discord" class="text-sm text-wh-mute">Discord: {{ player.discord }}</p>
       </div>
 
       <div v-if="!groupedByLeague.length" class="rounded-lg border border-wh-border bg-wh-surface p-6 text-wh-mute">

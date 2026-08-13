@@ -9,6 +9,10 @@ onMounted(async () => {
 function army(userId: string) {
   return byId(userId)?.army ?? ''
 }
+
+function discord(userId: string) {
+  return byId(userId)?.discord ?? ''
+}
 </script>
 
 <template>
@@ -41,6 +45,7 @@ function army(userId: string) {
                 {{ profileName(row.userId) }}
               </NuxtLink>
               <p v-if="army(row.userId)" class="text-xs text-wh-mute">{{ army(row.userId) }}</p>
+              <p v-if="discord(row.userId)" class="text-xs text-wh-mute">Discord: {{ discord(row.userId) }}</p>
             </td>
             <td class="px-4 py-3 text-right text-wh-ink">{{ row.matchesPlayed }}</td>
             <td class="px-4 py-3 text-right font-semibold text-wh-gold">{{ row.leaguePoints }}</td>

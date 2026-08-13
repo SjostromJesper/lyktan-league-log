@@ -232,7 +232,7 @@ async function submitCreateUser() {
 async function copyCredentials() {
   if (!lastCreatedAccount.value) return
   const { name, email, password } = lastCreatedAccount.value
-  const text = `Hej ${name}! Ditt konto till Lyktan League Log:\nE-post: ${email}\nLösenord: ${password}\n\nLogga in och byt lösenord under Inställningar.`
+  const text = `Hej ${name}! Ditt konto till Lyktan League Log:\nURL: ${window.location.origin}\nE-post: ${email}\nLösenord: ${password}\n\nLogga in och byt lösenord under Inställningar.`
   try {
     await navigator.clipboard.writeText(text)
     copyMessage.value = 'Kopierat!'

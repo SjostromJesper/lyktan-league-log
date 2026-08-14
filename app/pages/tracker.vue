@@ -93,7 +93,13 @@ function availableSecondariesFor(list: SecondaryEntry[]) {
 }
 
 function addSecondary(list: SecondaryEntry[], name: string) {
-  list.push({ name, discarded: false, expanded: true, steps: [], stepDraftLabel: '', stepDraftPoints: null })
+  list.push({
+    name,
+    discarded: false,
+    expanded: true,
+    pointsPerRound: null,
+    roundsCompleted: Array.from({ length: 5 }, () => false)
+  })
 }
 
 function removeSecondary(list: SecondaryEntry[], index: number) {
@@ -103,7 +109,7 @@ function removeSecondary(list: SecondaryEntry[], index: number) {
 function secondaryPoints(list: SecondaryEntry[]) {
   return list
     .filter(s => !s.discarded)
-    .reduce((sum, s) => sum + s.steps.filter(st => st.done).reduce((a, b) => a + b.points, 0), 0)
+    .reduce((sum, s) => sum + s.roundsCompleted.filter(Boolean).length * (s.pointsPerRound ?? 0), 0)
 }
 
 interface RoundScore {
@@ -218,8 +224,8 @@ async function submitReport() {
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
         <h2 class="mb-1 text-lg font-medium text-wh-ink">Secondaries (valfritt)</h2>
         <p class="mb-4 text-xs text-wh-mute">
-          Lägg till dina egna steg och poäng per secondary (t.ex. "Runda 1" = 5p), bocka i när du klarat dem så
-          summeras det automatiskt. Discarda en secondary för att gråa ut den och nolla dess poäng.
+          Sätt poäng per runda för secondaryn och bocka i vilka rundor du klarade den, så summeras det automatiskt.
+          Discarda en secondary för att gråa ut den och nolla dess poäng.
         </p>
         <div class="grid gap-4 sm:grid-cols-2">
           <SecondaryTracker

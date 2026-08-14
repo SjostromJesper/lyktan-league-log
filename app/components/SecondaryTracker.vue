@@ -1,17 +1,10 @@
 <script setup lang="ts">
-export interface SecondaryStep {
-  label: string
-  points: number
-  done: boolean
-}
-
 export interface SecondaryEntry {
   name: string
   discarded: boolean
   expanded: boolean
-  steps: SecondaryStep[]
-  stepDraftLabel: string
-  stepDraftPoints: number | null
+  pointsPerRound: number | null
+  roundsCompleted: boolean[]
 }
 
 defineProps<{ label: string; entries: SecondaryEntry[]; available: string[] }>()
@@ -19,20 +12,8 @@ const emit = defineEmits<{ add: [name: string]; remove: [index: number] }>()
 
 function entryPoints(entry: SecondaryEntry) {
   if (entry.discarded) return 0
-  return entry.steps.filter(s => s.done).reduce((sum, s) => sum + s.points, 0)
-}
-
-function addStep(entry: SecondaryEntry) {
-  const label = entry.stepDraftLabel.trim()
-  const points = entry.stepDraftPoints
-  if (!label || !points || points <= 0) return
-  entry.steps.push({ label, points, done: false })
-  entry.stepDraftLabel = ''
-  entry.stepDraftPoints = null
-}
-
-function removeStep(entry: SecondaryEntry, index: number) {
-  entry.steps.splice(index, 1)
+  const completedCount = entry.roundsCompleted.filter(Boolean).length
+  return completedCount * (entry.pointsPerRound ?? 0)
 }
 
 function handleAdd(event: Event) {
@@ -74,48 +55,28 @@ function handleAdd(event: Event) {
           <button type="button" class="shrink-0 text-wh-mute hover:text-wh-accent" @click="emit('remove', i)">✕</button>
         </div>
 
-        <div v-if="entry.expanded && !entry.discarded" class="space-y-2 border-t border-wh-border p-3">
-          <label
-            v-for="(step, si) in entry.steps"
-            :key="si"
-            class="flex items-center justify-between gap-2 text-sm text-wh-ink"
-          >
-            <span class="flex items-center gap-2">
-              <input v-model="step.done" type="checkbox" class="accent-wh-accent">
-              {{ step.label }} ({{ step.points }}p)
-            </span>
-            <button type="button" class="text-xs text-wh-mute hover:text-wh-accent" @click="removeStep(entry, si)">
-              ✕
-            </button>
-          </label>
-          <p v-if="!entry.steps.length" class="text-xs text-wh-mute">Inga steg tillagda än.</p>
-
-          <div class="flex flex-wrap items-end gap-2 pt-1">
-            <div class="flex-1">
-              <label class="mb-1 block text-xs text-wh-mute">Steg</label>
-              <input
-                v-model="entry.stepDraftLabel"
-                type="text"
-                placeholder="T.ex. Runda 1"
-                class="w-full rounded-md border border-wh-border bg-wh-surface px-2 py-1 text-sm text-wh-ink outline-none focus:border-wh-accent"
-              >
-            </div>
-            <div class="w-20">
-              <label class="mb-1 block text-xs text-wh-mute">Poäng</label>
-              <input
-                v-model.number="entry.stepDraftPoints"
-                type="number"
-                min="1"
-                class="w-full rounded-md border border-wh-border bg-wh-surface px-2 py-1 text-sm text-wh-ink outline-none focus:border-wh-accent"
-              >
-            </div>
-            <button
-              type="button"
-              class="rounded-md border border-wh-border px-2 py-1 text-xs text-wh-ink hover:border-wh-accent"
-              @click="addStep(entry)"
+        <div v-if="entry.expanded && !entry.discarded" class="space-y-3 border-t border-wh-border p-3">
+          <div class="w-28">
+            <label class="mb-1 block text-xs text-wh-mute">Poäng per runda</label>
+            <input
+              v-model.number="entry.pointsPerRound"
+              type="number"
+              min="0"
+              class="w-full rounded-md border border-wh-border bg-wh-surface px-2 py-1 text-sm text-wh-ink outline-none focus:border-wh-accent"
             >
-              + Lägg till steg
-            </button>
+          </div>
+          <div>
+            <p class="mb-1 text-xs text-wh-mute">Klar i runda</p>
+            <div class="flex flex-wrap gap-3">
+              <label
+                v-for="(done, ri) in entry.roundsCompleted"
+                :key="ri"
+                class="flex items-center gap-1 text-sm text-wh-ink"
+              >
+                <input v-model="entry.roundsCompleted[ri]" type="checkbox" class="accent-wh-accent">
+                {{ ri + 1 }}
+              </label>
+            </div>
           </div>
         </div>
       </li>

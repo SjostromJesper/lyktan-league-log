@@ -202,9 +202,17 @@ async function respondToReport(action: 'confirm' | 'dispute') {
 
       <!-- Active match: waiting for report -->
       <div v-if="myActiveMatch && myActiveMatch.status === 'pending'" class="rounded-lg border border-wh-border bg-wh-surface p-6">
-        <h2 class="text-lg font-medium text-wh-ink">Din match</h2>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-lg font-medium text-wh-ink">Din match</h2>
+          <NuxtLink
+            to="/tracker"
+            class="rounded-md border border-wh-border px-3 py-1.5 text-sm text-wh-ink hover:border-wh-accent"
+          >
+            Öppna matchtracker
+          </NuxtLink>
+        </div>
 
-        <form class="space-y-3" @submit.prevent="submitReport">
+        <form class="mt-3 space-y-3" @submit.prevent="submitReport">
           <label class="block text-sm text-wh-mute">Rapportera resultat (VP)</label>
           <div class="grid grid-cols-2 gap-3">
             <div>

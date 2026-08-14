@@ -16,7 +16,7 @@ function discord(userId: string) {
 </script>
 
 <template>
-  <div class="max-w-2xl space-y-6">
+  <div class="max-w-3xl space-y-6">
     <h1 class="text-2xl font-semibold text-wh-ink">Tabell</h1>
 
     <div v-if="!selectedLeague" class="rounded-lg border border-wh-border bg-wh-surface p-6 text-wh-mute">
@@ -28,32 +28,38 @@ function discord(userId: string) {
     </div>
 
     <div v-else class="overflow-hidden rounded-lg border border-wh-border bg-wh-surface">
-      <table class="w-full text-left text-sm">
-        <thead class="border-b border-wh-border text-wh-mute">
-          <tr>
-            <th class="px-4 py-3">#</th>
-            <th class="px-4 py-3">Spelare</th>
-            <th class="px-4 py-3 text-right">M</th>
-            <th class="px-4 py-3 text-right">League Points</th>
-            <th class="px-4 py-3 text-right">Painted</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(row, index) in scoreboard" :key="row.userId" class="border-b border-wh-border last:border-0">
-            <td class="px-4 py-3 text-wh-mute">{{ index + 1 }}</td>
-            <td class="px-4 py-3">
-              <NuxtLink :to="`/players/${row.userId}`" class="text-wh-ink hover:text-wh-gold hover:underline">
-                {{ profileName(row.userId) }}
-              </NuxtLink>
-              <p v-if="army(row.userId)" class="text-xs text-wh-mute">{{ army(row.userId) }}</p>
-              <p v-if="discord(row.userId)" class="text-xs text-wh-mute">Discord: {{ discord(row.userId) }}</p>
-            </td>
-            <td class="px-4 py-3 text-right text-wh-ink">{{ row.matchesPlayed }}</td>
-            <td class="px-4 py-3 text-right font-semibold text-wh-gold">{{ row.leaguePoints }}</td>
-            <td class="px-4 py-3 text-right text-wh-ink">{{ row.paintingPoints }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="border-b border-wh-border text-wh-mute">
+            <tr>
+              <th class="px-4 py-3">#</th>
+              <th class="px-4 py-3">Spelare</th>
+              <th class="px-4 py-3 text-right">M</th>
+              <th class="px-4 py-3 text-right">V-O-F</th>
+              <th class="px-4 py-3 text-right">Match Points</th>
+              <th class="px-4 py-3 text-right">Painted</th>
+              <th class="px-4 py-3 text-right">League Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, index) in scoreboard" :key="row.userId" class="border-b border-wh-border last:border-0">
+              <td class="px-4 py-3 text-wh-mute">{{ index + 1 }}</td>
+              <td class="px-4 py-3">
+                <NuxtLink :to="`/players/${row.userId}`" class="text-wh-ink hover:text-wh-gold hover:underline">
+                  {{ profileName(row.userId) }}
+                </NuxtLink>
+                <p v-if="army(row.userId)" class="text-xs text-wh-mute">{{ army(row.userId) }}</p>
+                <p v-if="discord(row.userId)" class="text-xs text-wh-mute">Discord: {{ discord(row.userId) }}</p>
+              </td>
+              <td class="px-4 py-3 text-right text-wh-ink">{{ row.matchesPlayed }}</td>
+              <td class="px-4 py-3 text-right text-wh-mute">{{ row.wins }}-{{ row.ties }}-{{ row.losses }}</td>
+              <td class="px-4 py-3 text-right text-wh-ink">{{ row.matchPoints }}</td>
+              <td class="px-4 py-3 text-right text-wh-ink">{{ row.paintingPoints }}</td>
+              <td class="px-4 py-3 text-right font-semibold text-wh-gold">{{ row.leaguePoints }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>

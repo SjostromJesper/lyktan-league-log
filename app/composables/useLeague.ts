@@ -340,9 +340,22 @@ export function useLeague() {
   }
 
   const scoreboard = computed(() => {
-    const tally: Record<string, { matchesPlayed: number; leaguePoints: number; wtcPoints: number; vpDiff: number }> = {}
+    const tally: Record<
+      string,
+      {
+        matchesPlayed: number
+        wins: number
+        ties: number
+        losses: number
+        matchPoints: number
+        wtcPoints: number
+        vpDiff: number
+      }
+    > = {}
     function ensure(id: string) {
-      if (!tally[id]) tally[id] = { matchesPlayed: 0, leaguePoints: 0, wtcPoints: 0, vpDiff: 0 }
+      if (!tally[id]) {
+        tally[id] = { matchesPlayed: 0, wins: 0, ties: 0, losses: 0, matchPoints: 0, wtcPoints: 0, vpDiff: 0 }
+      }
       return tally[id]
     }
     for (const m of members.value) {
@@ -352,20 +365,32 @@ export function useLeague() {
       m => m.status === 'confirmed' && m.player1_vp != null && m.player2_vp != null
     )
     for (const m of confirmed) {
+      const p1lp = m.player1_league_points ?? 0
+      const p2lp = m.player2_league_points ?? 0
+
       const p1 = ensure(m.player1_id)
       p1.matchesPlayed++
-      p1.leaguePoints += m.player1_league_points ?? 0
+      p1.matchPoints += p1lp
       p1.wtcPoints += m.player1_wtc ?? 0
       p1.vpDiff += (m.player1_vp ?? 0) - (m.player2_vp ?? 0)
+      if (p1lp > p2lp) p1.wins++
+      else if (p1lp === p2lp) p1.ties++
+      else p1.losses++
 
       const p2 = ensure(m.player2_id)
       p2.matchesPlayed++
-      p2.leaguePoints += m.player2_league_points ?? 0
+      p2.matchPoints += p2lp
       p2.wtcPoints += m.player2_wtc ?? 0
       p2.vpDiff += (m.player2_vp ?? 0) - (m.player1_vp ?? 0)
+      if (p2lp > p1lp) p2.wins++
+      else if (p2lp === p1lp) p2.ties++
+      else p2.losses++
     }
     return Object.entries(tally)
-      .map(([userId, stats]) => ({ userId, ...stats, paintingPoints: paintingPointsFor(userId) }))
+      .map(([userId, stats]) => {
+        const paintingPoints = paintingPointsFor(userId)
+        return { userId, ...stats, paintingPoints, leaguePoints: stats.matchPoints + paintingPoints }
+      })
       .sort((a, b) => b.leaguePoints - a.leaguePoints || b.wtcPoints - a.wtcPoints || b.vpDiff - a.vpDiff)
   })
 

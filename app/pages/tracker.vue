@@ -82,10 +82,24 @@ const opponentMissionName = computed(() => {
   return MISSION_MATRIX[opponentDisposition.value][myDisposition.value]
 })
 
-const mySecondary1 = ref('')
-const mySecondary2 = ref('')
-const opponentSecondary1 = ref('')
-const opponentSecondary2 = ref('')
+const mySecondaries = ref<string[]>([])
+const opponentSecondaries = ref<string[]>([])
+
+function availableSecondariesFor(list: string[]) {
+  return SECONDARY_MISSIONS.filter(s => !list.includes(s))
+}
+
+function addSecondary(list: string[], event: Event) {
+  const select = event.target as HTMLSelectElement
+  const value = select.value
+  select.value = ''
+  if (!value) return
+  list.push(value)
+}
+
+function removeSecondary(list: string[], index: number) {
+  list.splice(index, 1)
+}
 
 interface RoundScore {
   myPrimary: number | null
@@ -203,39 +217,55 @@ async function submitReport() {
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
         <h2 class="mb-4 text-lg font-medium text-wh-ink">Secondaries (valfritt)</h2>
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <p class="mb-1 text-xs text-wh-mute">Dina secondaries</p>
+            <ul class="space-y-1">
+              <li
+                v-for="(s, i) in mySecondaries"
+                :key="s"
+                class="flex items-center justify-between gap-2 rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink"
+              >
+                {{ s }}
+                <button type="button" class="text-wh-mute hover:text-wh-accent" @click="removeSecondary(mySecondaries, i)">
+                  ✕
+                </button>
+              </li>
+            </ul>
             <select
-              v-model="mySecondary1"
-              class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink outline-none focus:border-wh-accent"
+              value=""
+              class="mt-1 w-full rounded-md border border-dashed border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-mute outline-none focus:border-wh-accent"
+              @change="addSecondary(mySecondaries, $event)"
             >
-              <option value="">Ingen vald</option>
-              <option v-for="s in SECONDARY_MISSIONS" :key="s" :value="s">{{ s }}</option>
-            </select>
-            <select
-              v-model="mySecondary2"
-              class="mt-2 w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink outline-none focus:border-wh-accent"
-            >
-              <option value="">Ingen vald</option>
-              <option v-for="s in SECONDARY_MISSIONS" :key="s" :value="s">{{ s }}</option>
+              <option value="" disabled selected>+ Lägg till secondary</option>
+              <option v-for="s in availableSecondariesFor(mySecondaries)" :key="s" :value="s">{{ s }}</option>
             </select>
           </div>
           <div>
-            <p class="mb-1 text-xs text-wh-mute">Motståndarens secondaries</p>
+            <p class="mb-1 text-xs text-wh-mute">{{ opponentLabel }}s secondaries</p>
+            <ul class="space-y-1">
+              <li
+                v-for="(s, i) in opponentSecondaries"
+                :key="s"
+                class="flex items-center justify-between gap-2 rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink"
+              >
+                {{ s }}
+                <button
+                  type="button"
+                  class="text-wh-mute hover:text-wh-accent"
+                  @click="removeSecondary(opponentSecondaries, i)"
+                >
+                  ✕
+                </button>
+              </li>
+            </ul>
             <select
-              v-model="opponentSecondary1"
-              class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink outline-none focus:border-wh-accent"
+              value=""
+              class="mt-1 w-full rounded-md border border-dashed border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-mute outline-none focus:border-wh-accent"
+              @change="addSecondary(opponentSecondaries, $event)"
             >
-              <option value="">Ingen vald</option>
-              <option v-for="s in SECONDARY_MISSIONS" :key="s" :value="s">{{ s }}</option>
-            </select>
-            <select
-              v-model="opponentSecondary2"
-              class="mt-2 w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink outline-none focus:border-wh-accent"
-            >
-              <option value="">Ingen vald</option>
-              <option v-for="s in SECONDARY_MISSIONS" :key="s" :value="s">{{ s }}</option>
+              <option value="" disabled selected>+ Lägg till secondary</option>
+              <option v-for="s in availableSecondariesFor(opponentSecondaries)" :key="s" :value="s">{{ s }}</option>
             </select>
           </div>
         </div>

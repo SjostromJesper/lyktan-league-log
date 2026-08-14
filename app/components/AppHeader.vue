@@ -39,6 +39,7 @@ async function handleLogout() {
           </span>
         </NuxtLink>
         <NuxtLink to="/matches" class="hover:text-wh-ink">Matcher</NuxtLink>
+        <NuxtLink to="/tracker" class="hover:text-wh-ink">Tracker</NuxtLink>
         <NuxtLink to="/scoreboard" class="hover:text-wh-ink">Tabell</NuxtLink>
         <NuxtLink to="/settings" class="hover:text-wh-ink">Inställningar</NuxtLink>
         <NuxtLink v-if="isAdminView" to="/admin" class="text-wh-gold hover:text-wh-gold">Admin</NuxtLink>

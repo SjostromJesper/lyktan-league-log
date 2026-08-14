@@ -103,11 +103,20 @@ const opponentTotal = computed(() =>
   rounds.value.reduce((sum, r) => sum + (r.opponentPrimary ?? 0) + (r.opponentSecondary ?? 0), 0)
 )
 
+const hasReportableMatch = computed(() => !!myActiveMatch.value && myActiveMatch.value.status === 'pending')
+
 const opponentId = computed(() => {
   if (!myActiveMatch.value || !currentUserId.value) return null
   return myActiveMatch.value.player1_id === currentUserId.value
     ? myActiveMatch.value.player2_id
     : myActiveMatch.value.player1_id
+})
+
+const opponentLabel = computed(() => (opponentId.value ? profileName(opponentId.value) : 'motståndaren'))
+
+const applyToMatch = ref(hasReportableMatch.value)
+watch(hasReportableMatch, val => {
+  if (!val) applyToMatch.value = false
 })
 
 const reportError = ref('')
@@ -132,19 +141,24 @@ async function submitReport() {
   <div class="max-w-2xl space-y-6">
     <h1 class="text-2xl font-semibold text-wh-ink">Matchtracker</h1>
 
-    <div
-      v-if="!myActiveMatch || myActiveMatch.status !== 'pending'"
-      class="rounded-lg border border-wh-border bg-wh-surface p-6 text-wh-mute"
-    >
-      Ingen pågående match att spåra just nu.
-      <NuxtLink to="/" class="text-wh-accent hover:underline">Till översikten</NuxtLink>
-    </div>
+    <p class="text-sm text-wh-mute">
+      <template v-if="hasReportableMatch">Mot {{ opponentLabel }}</template>
+      <template v-else>Fristående spårning — inte kopplad till någon ligamatch just nu.</template>
+    </p>
 
-    <template v-else>
-      <p class="text-sm text-wh-mute">Mot {{ profileName(opponentId!) }}</p>
+    <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
+      <h2 class="mb-1 text-lg font-medium text-wh-ink">Rapportera till liga</h2>
+      <label v-if="hasReportableMatch" class="mt-2 flex items-center gap-2 text-sm text-wh-ink">
+        <input v-model="applyToMatch" type="checkbox" class="accent-wh-accent">
+        Applicera slutpoängen på min pågående match mot {{ opponentLabel }}
+      </label>
+      <p v-else class="mt-2 text-sm text-wh-mute">
+        Ingen pågående ligamatch att rapportera till just nu — spårningen sparas inte någonstans.
+      </p>
+    </section>
 
-      <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-        <h2 class="mb-1 text-lg font-medium text-wh-ink">Disposition</h2>
+    <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
+      <h2 class="mb-1 text-lg font-medium text-wh-ink">Disposition</h2>
         <p class="mb-4 text-xs text-wh-mute">
           Från GDM 2026 (fan-gjord 11th edition-referens) — flagga om något ser fel ut.
         </p>
@@ -274,13 +288,14 @@ async function submitReport() {
             <p class="mt-1 text-xl font-semibold text-wh-ink">{{ myTotal }}</p>
           </div>
           <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">
-            <p class="text-xs text-wh-mute">{{ profileName(opponentId!) }}s totala VP</p>
+            <p class="text-xs text-wh-mute">{{ opponentLabel }}s totala VP</p>
             <p class="mt-1 text-xl font-semibold text-wh-ink">{{ opponentTotal }}</p>
           </div>
         </div>
 
         <p v-if="reportError" class="mt-3 text-sm text-wh-accent">{{ reportError }}</p>
         <button
+          v-if="applyToMatch && hasReportableMatch"
           type="button"
           :disabled="reportSubmitting"
           class="mt-4 rounded-md bg-wh-accent px-4 py-2 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover disabled:opacity-50"
@@ -288,7 +303,10 @@ async function submitReport() {
         >
           {{ reportSubmitting ? 'Rapporterar...' : 'Rapportera resultat' }}
         </button>
+        <p v-else-if="hasReportableMatch" class="mt-4 text-sm text-wh-mute">
+          Bocka i "Rapportera till liga" ovan om du vill applicera detta resultat på din pågående match.
+        </p>
+        <p v-else class="mt-4 text-sm text-wh-mute">Fristående spårning — sparas inte någonstans.</p>
       </section>
-    </template>
   </div>
 </template>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { SecondaryEntry } from '~/components/SecondaryTracker.vue'
+
 const { myActiveMatch, reportMatch } = useLeague()
 const { name: profileName } = useProfiles()
 const currentUserId = useCurrentUserId()
@@ -82,45 +84,43 @@ const opponentMissionName = computed(() => {
   return MISSION_MATRIX[opponentDisposition.value][myDisposition.value]
 })
 
-const mySecondaries = ref<string[]>([])
-const opponentSecondaries = ref<string[]>([])
+const mySecondaries = ref<SecondaryEntry[]>([])
+const opponentSecondaries = ref<SecondaryEntry[]>([])
 
-function availableSecondariesFor(list: string[]) {
-  return SECONDARY_MISSIONS.filter(s => !list.includes(s))
+function availableSecondariesFor(list: SecondaryEntry[]) {
+  const chosen = new Set(list.map(s => s.name))
+  return SECONDARY_MISSIONS.filter(s => !chosen.has(s))
 }
 
-function addSecondary(list: string[], event: Event) {
-  const select = event.target as HTMLSelectElement
-  const value = select.value
-  select.value = ''
-  if (!value) return
-  list.push(value)
+function addSecondary(list: SecondaryEntry[], name: string) {
+  list.push({ name, discarded: false, expanded: true, steps: [], stepDraftLabel: '', stepDraftPoints: null })
 }
 
-function removeSecondary(list: string[], index: number) {
+function removeSecondary(list: SecondaryEntry[], index: number) {
   list.splice(index, 1)
+}
+
+function secondaryPoints(list: SecondaryEntry[]) {
+  return list
+    .filter(s => !s.discarded)
+    .reduce((sum, s) => sum + s.steps.filter(st => st.done).reduce((a, b) => a + b.points, 0), 0)
 }
 
 interface RoundScore {
   myPrimary: number | null
-  mySecondary: number | null
   opponentPrimary: number | null
-  opponentSecondary: number | null
 }
 
-const rounds = ref<RoundScore[]>(
-  Array.from({ length: 5 }, () => ({
-    myPrimary: null,
-    mySecondary: null,
-    opponentPrimary: null,
-    opponentSecondary: null
-  }))
-)
+const rounds = ref<RoundScore[]>(Array.from({ length: 5 }, () => ({ myPrimary: null, opponentPrimary: null })))
 
-const myTotal = computed(() => rounds.value.reduce((sum, r) => sum + (r.myPrimary ?? 0) + (r.mySecondary ?? 0), 0))
-const opponentTotal = computed(() =>
-  rounds.value.reduce((sum, r) => sum + (r.opponentPrimary ?? 0) + (r.opponentSecondary ?? 0), 0)
-)
+const myPrimaryTotal = computed(() => rounds.value.reduce((sum, r) => sum + (r.myPrimary ?? 0), 0))
+const opponentPrimaryTotal = computed(() => rounds.value.reduce((sum, r) => sum + (r.opponentPrimary ?? 0), 0))
+
+const mySecondaryTotal = computed(() => secondaryPoints(mySecondaries.value))
+const opponentSecondaryTotal = computed(() => secondaryPoints(opponentSecondaries.value))
+
+const myTotal = computed(() => myPrimaryTotal.value + mySecondaryTotal.value)
+const opponentTotal = computed(() => opponentPrimaryTotal.value + opponentSecondaryTotal.value)
 
 const hasReportableMatch = computed(() => !!myActiveMatch.value && myActiveMatch.value.status === 'pending')
 
@@ -216,63 +216,31 @@ async function submitReport() {
       </section>
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-        <h2 class="mb-4 text-lg font-medium text-wh-ink">Secondaries (valfritt)</h2>
+        <h2 class="mb-1 text-lg font-medium text-wh-ink">Secondaries (valfritt)</h2>
+        <p class="mb-4 text-xs text-wh-mute">
+          Lägg till dina egna steg och poäng per secondary (t.ex. "Runda 1" = 5p), bocka i när du klarat dem så
+          summeras det automatiskt. Discarda en secondary för att gråa ut den och nolla dess poäng.
+        </p>
         <div class="grid gap-4 sm:grid-cols-2">
-          <div>
-            <p class="mb-1 text-xs text-wh-mute">Dina secondaries</p>
-            <ul class="space-y-1">
-              <li
-                v-for="(s, i) in mySecondaries"
-                :key="s"
-                class="flex items-center justify-between gap-2 rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink"
-              >
-                {{ s }}
-                <button type="button" class="text-wh-mute hover:text-wh-accent" @click="removeSecondary(mySecondaries, i)">
-                  ✕
-                </button>
-              </li>
-            </ul>
-            <select
-              value=""
-              class="mt-1 w-full rounded-md border border-dashed border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-mute outline-none focus:border-wh-accent"
-              @change="addSecondary(mySecondaries, $event)"
-            >
-              <option value="" disabled selected>+ Lägg till secondary</option>
-              <option v-for="s in availableSecondariesFor(mySecondaries)" :key="s" :value="s">{{ s }}</option>
-            </select>
-          </div>
-          <div>
-            <p class="mb-1 text-xs text-wh-mute">{{ opponentLabel }}s secondaries</p>
-            <ul class="space-y-1">
-              <li
-                v-for="(s, i) in opponentSecondaries"
-                :key="s"
-                class="flex items-center justify-between gap-2 rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink"
-              >
-                {{ s }}
-                <button
-                  type="button"
-                  class="text-wh-mute hover:text-wh-accent"
-                  @click="removeSecondary(opponentSecondaries, i)"
-                >
-                  ✕
-                </button>
-              </li>
-            </ul>
-            <select
-              value=""
-              class="mt-1 w-full rounded-md border border-dashed border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-mute outline-none focus:border-wh-accent"
-              @change="addSecondary(opponentSecondaries, $event)"
-            >
-              <option value="" disabled selected>+ Lägg till secondary</option>
-              <option v-for="s in availableSecondariesFor(opponentSecondaries)" :key="s" :value="s">{{ s }}</option>
-            </select>
-          </div>
+          <SecondaryTracker
+            label="Dina secondaries"
+            :entries="mySecondaries"
+            :available="availableSecondariesFor(mySecondaries)"
+            @add="name => addSecondary(mySecondaries, name)"
+            @remove="i => removeSecondary(mySecondaries, i)"
+          />
+          <SecondaryTracker
+            :label="`${opponentLabel}s secondaries`"
+            :entries="opponentSecondaries"
+            :available="availableSecondariesFor(opponentSecondaries)"
+            @add="name => addSecondary(opponentSecondaries, name)"
+            @remove="i => removeSecondary(opponentSecondaries, i)"
+          />
         </div>
       </section>
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-        <h2 class="mb-4 text-lg font-medium text-wh-ink">Poäng per runda</h2>
+        <h2 class="mb-4 text-lg font-medium text-wh-ink">Primary-poäng per runda</h2>
         <div class="space-y-3">
           <div v-for="(r, i) in rounds" :key="i" class="rounded-md border border-wh-border p-3">
             <p class="mb-2 text-xs font-medium text-wh-mute">Runda {{ i + 1 }}</p>
@@ -281,16 +249,6 @@ async function submitReport() {
                 <label class="mb-1 block text-xs text-wh-mute">Din primary</label>
                 <input
                   v-model.number="r.myPrimary"
-                  type="number"
-                  min="0"
-                  inputmode="numeric"
-                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                >
-              </div>
-              <div>
-                <label class="mb-1 block text-xs text-wh-mute">Din secondary</label>
-                <input
-                  v-model.number="r.mySecondary"
                   type="number"
                   min="0"
                   inputmode="numeric"
@@ -307,16 +265,6 @@ async function submitReport() {
                   class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
                 >
               </div>
-              <div>
-                <label class="mb-1 block text-xs text-wh-mute">Motst. secondary</label>
-                <input
-                  v-model.number="r.opponentSecondary"
-                  type="number"
-                  min="0"
-                  inputmode="numeric"
-                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                >
-              </div>
             </div>
           </div>
         </div>
@@ -325,10 +273,14 @@ async function submitReport() {
           <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">
             <p class="text-xs text-wh-mute">Din totala VP</p>
             <p class="mt-1 text-xl font-semibold text-wh-ink">{{ myTotal }}</p>
+            <p class="text-xs text-wh-mute">{{ myPrimaryTotal }} primary + {{ mySecondaryTotal }} secondary</p>
           </div>
           <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">
             <p class="text-xs text-wh-mute">{{ opponentLabel }}s totala VP</p>
             <p class="mt-1 text-xl font-semibold text-wh-ink">{{ opponentTotal }}</p>
+            <p class="text-xs text-wh-mute">
+              {{ opponentPrimaryTotal }} primary + {{ opponentSecondaryTotal }} secondary
+            </p>
           </div>
         </div>
 

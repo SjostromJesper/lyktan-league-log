@@ -35,6 +35,10 @@ const {
   paintedUnits
 } = useLeague()
 
+onMounted(async () => {
+  await Promise.all([refresh(), refreshProfiles()])
+})
+
 function leagueName(leagueId: string) {
   return allLeagues.value.find(l => l.id === leagueId)?.name ?? 'Okänd liga'
 }
@@ -59,68 +63,44 @@ async function handleAddToLeague(userId: string, event: Event) {
   }
 }
 
-onMounted(async () => {
-  await Promise.all([refresh(), refreshProfiles()])
-})
-
-const newLeagueName = ref('')
-const newLeagueDescription = ref('')
-const newLeaguePhaseCount = ref(1)
-const newLeagueMatchesPerPhase = ref(3)
-const leagueError = ref('')
-
-async function submitLeague() {
-  leagueError.value = ''
-  try {
-    await createLeague(newLeagueName.value, {
-      description: newLeagueDescription.value,
-      phaseCount: newLeaguePhaseCount.value,
-      matchesPerPhase: newLeagueMatchesPerPhase.value
-    })
-    newLeagueName.value = ''
-    newLeagueDescription.value = ''
-    newLeaguePhaseCount.value = 1
-    newLeagueMatchesPerPhase.value = 3
-  } catch (e) {
-    leagueError.value = e instanceof Error ? e.message : 'Något gick fel.'
-  }
-}
-
-const editingLeagueId = ref<string | null>(null)
-const editName = ref('')
-const editDescription = ref('')
-const editPhaseCount = ref(1)
-const editMatchesPerPhase = ref(3)
-const editError = ref('')
+// League create/edit modal
+const showLeagueModal = ref(false)
+const leagueModalMode = ref<'create' | 'edit'>('create')
+const editingLeague = ref<League | null>(null)
 const leagueActionError = ref('')
 const confirmDeleteId = ref<string | null>(null)
 
-function startEdit(league: League) {
-  editingLeagueId.value = league.id
-  editName.value = league.name
-  editDescription.value = league.description
-  editPhaseCount.value = league.phase_count
-  editMatchesPerPhase.value = league.matches_per_phase
-  editError.value = ''
+function openCreateLeagueModal() {
+  leagueModalMode.value = 'create'
+  editingLeague.value = null
+  showLeagueModal.value = true
 }
 
-function cancelEdit() {
-  editingLeagueId.value = null
+function openEditLeagueModal(league: League) {
+  leagueModalMode.value = 'edit'
+  editingLeague.value = league
+  showLeagueModal.value = true
 }
 
-async function saveEdit() {
-  if (!editingLeagueId.value) return
-  editError.value = ''
-  try {
-    await updateLeague(editingLeagueId.value, {
-      name: editName.value,
-      description: editDescription.value,
-      phase_count: editPhaseCount.value,
-      matches_per_phase: editMatchesPerPhase.value
+async function handleLeagueSubmit(payload: {
+  name: string
+  description: string
+  phaseCount: number
+  matchesPerPhase: number
+}) {
+  if (leagueModalMode.value === 'create') {
+    await createLeague(payload.name, {
+      description: payload.description,
+      phaseCount: payload.phaseCount,
+      matchesPerPhase: payload.matchesPerPhase
     })
-    editingLeagueId.value = null
-  } catch (e) {
-    editError.value = e instanceof Error ? e.message : 'Något gick fel.'
+  } else if (editingLeague.value) {
+    await updateLeague(editingLeague.value.id, {
+      name: payload.name,
+      description: payload.description,
+      phase_count: payload.phaseCount,
+      matches_per_phase: payload.matchesPerPhase
+    })
   }
 }
 
@@ -160,7 +140,17 @@ async function handleDeactivate(leagueId: string) {
   }
 }
 
+async function handleActivate(leagueId: string) {
+  leagueActionError.value = ''
+  try {
+    await setActiveLeague(leagueId)
+  } catch (e) {
+    leagueActionError.value = e instanceof Error ? e.message : 'Något gick fel.'
+  }
+}
+
 async function handleSelectLeague(leagueId: string) {
+  if (!leagueId) return
   leagueActionError.value = ''
   try {
     await selectLeague(leagueId)
@@ -183,65 +173,29 @@ async function handleDelete(leagueId: string) {
   }
 }
 
-const newEmail = ref('')
-const newPassword = ref('')
-const newName = ref('')
-const newArmy = ref('')
-const selectedLeagueIds = ref<string[]>([])
-const createUserError = ref('')
-const creatingUser = ref(false)
+// Create account modal
+const showAccountModal = ref(false)
 
-interface CreatedAccount {
+async function handleCreateAccount(payload: {
   name: string
+  army: string
   email: string
   password: string
-}
-
-const lastCreatedAccount = ref<CreatedAccount | null>(null)
-const copyMessage = ref('')
-
-async function submitCreateUser() {
-  createUserError.value = ''
-  lastCreatedAccount.value = null
-  creatingUser.value = true
-  try {
-    const {
-      data: { session }
-    } = await supabase.auth.getSession()
-    const result = await $fetch<{ id: string }>('/api/admin/create-user', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${session?.access_token}` },
-      body: { email: newEmail.value, password: newPassword.value, name: newName.value, army: newArmy.value }
-    })
-    await refreshProfiles()
-    if (result.id) {
-      for (const leagueId of selectedLeagueIds.value) {
-        await addMemberToLeague(result.id, leagueId)
-      }
+  leagueIds: string[]
+}) {
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
+  const result = await $fetch<{ id: string }>('/api/admin/create-user', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session?.access_token}` },
+    body: { email: payload.email, password: payload.password, name: payload.name, army: payload.army }
+  })
+  await refreshProfiles()
+  if (result.id) {
+    for (const leagueId of payload.leagueIds) {
+      await addMemberToLeague(result.id, leagueId)
     }
-    lastCreatedAccount.value = { name: newName.value, email: newEmail.value, password: newPassword.value }
-    newEmail.value = ''
-    newPassword.value = ''
-    newName.value = ''
-    newArmy.value = ''
-    selectedLeagueIds.value = []
-  } catch (e: unknown) {
-    const err = e as { data?: { statusMessage?: string }; message?: string }
-    createUserError.value = err.data?.statusMessage ?? err.message ?? 'Något gick fel.'
-  } finally {
-    creatingUser.value = false
-  }
-}
-
-async function copyCredentials() {
-  if (!lastCreatedAccount.value) return
-  const { name, email, password } = lastCreatedAccount.value
-  const text = `Hej ${name}! Ditt konto till Lyktan League Log:\nURL: ${window.location.origin}\nE-post: ${email}\nLösenord: ${password}\n\nLogga in och byt lösenord under Inställningar.`
-  try {
-    await navigator.clipboard.writeText(text)
-    copyMessage.value = 'Kopierat!'
-  } catch {
-    copyMessage.value = 'Kunde inte kopiera automatiskt, markera texten manuellt.'
   }
 }
 
@@ -327,11 +281,10 @@ function isPainted(userId: string, unit: PaintedUnitKey) {
   return paintedUnits.value.find(p => p.user_id === userId)?.[unit] ?? false
 }
 
-async function handleTogglePainted(userId: string, unit: PaintedUnitKey, event: Event) {
+async function handleTogglePainted(userId: string, unit: PaintedUnitKey) {
   paintError.value = ''
-  const checked = (event.target as HTMLInputElement).checked
   try {
-    await setPaintedUnit(userId, unit, checked)
+    await setPaintedUnit(userId, unit, !isPainted(userId, unit))
   } catch (e) {
     paintError.value = e instanceof Error ? e.message : 'Något gick fel.'
   }
@@ -339,403 +292,90 @@ async function handleTogglePainted(userId: string, unit: PaintedUnitKey, event: 
 </script>
 
 <template>
-  <div class="max-w-3xl space-y-8">
-    <h1 class="text-2xl font-semibold text-wh-ink">Admin</h1>
-
-    <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-      <h2 class="mb-4 text-lg font-medium text-wh-ink">Ligor</h2>
-      <p v-if="leagueActionError" class="mb-3 text-sm text-wh-accent">{{ leagueActionError }}</p>
-      <ul class="mb-4 space-y-3">
-        <li v-for="l in allLeagues" :key="l.id" class="rounded-md border border-wh-border p-3 text-sm">
-          <template v-if="editingLeagueId === l.id">
-            <div class="space-y-3">
-              <div>
-                <label class="mb-1 block text-xs text-wh-mute">Namn</label>
-                <input
-                  v-model="editName"
-                  type="text"
-                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                >
-              </div>
-              <div>
-                <label class="mb-1 block text-xs text-wh-mute">Beskrivning</label>
-                <textarea
-                  v-model="editDescription"
-                  rows="2"
-                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                />
-              </div>
-              <div class="flex gap-3">
-                <div class="w-32">
-                  <label class="mb-1 block text-xs text-wh-mute">Antal faser</label>
-                  <input
-                    v-model.number="editPhaseCount"
-                    type="number"
-                    min="1"
-                    class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                  >
-                </div>
-                <div class="w-32">
-                  <label class="mb-1 block text-xs text-wh-mute">Matcher/fas</label>
-                  <input
-                    v-model.number="editMatchesPerPhase"
-                    type="number"
-                    min="1"
-                    class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                  >
-                </div>
-              </div>
-              <p v-if="editError" class="text-sm text-wh-accent">{{ editError }}</p>
-              <div class="flex gap-2">
-                <button
-                  type="button"
-                  class="rounded-md bg-wh-accent px-3 py-1.5 text-wh-ink hover:bg-wh-accent-hover"
-                  @click="saveEdit"
-                >
-                  Spara
-                </button>
-                <button
-                  type="button"
-                  class="rounded-md border border-wh-border px-3 py-1.5 text-wh-mute hover:border-wh-accent"
-                  @click="cancelEdit"
-                >
-                  Avbryt
-                </button>
-              </div>
-            </div>
-          </template>
-          <template v-else>
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <span class="text-wh-ink">{{ l.name }}</span>
-                <span v-if="l.id === selectedLeague?.id" class="ml-2 text-xs text-wh-mute">(hanteras nu)</span>
-                <span v-if="l.is_active" class="ml-2 text-wh-gold">Aktiv</span>
-                <span v-if="l.is_archived" class="ml-2 text-wh-mute">Arkiverad</span>
-                <p v-if="l.description" class="mt-1 text-xs text-wh-mute">{{ l.description }}</p>
-                <p class="mt-1 text-xs text-wh-mute">
-                  Fas {{ l.current_phase }} av {{ l.phase_count }} · {{ l.matches_per_phase }} matcher/fas
-                </p>
-              </div>
-              <div class="flex flex-wrap gap-3 text-xs">
-                <button
-                  v-if="l.id !== selectedLeague?.id"
-                  type="button"
-                  class="text-wh-mute hover:text-wh-accent"
-                  @click="handleSelectLeague(l.id)"
-                >
-                  Hantera
-                </button>
-                <button
-                  v-if="!l.is_active && !l.is_archived"
-                  type="button"
-                  class="text-wh-mute hover:text-wh-accent"
-                  @click="setActiveLeague(l.id)"
-                >
-                  Gör aktiv
-                </button>
-                <button
-                  v-if="l.is_active && !l.is_archived"
-                  type="button"
-                  class="text-wh-mute hover:text-wh-accent"
-                  @click="handleDeactivate(l.id)"
-                >
-                  Avaktivera
-                </button>
-                <button
-                  v-if="l.is_active && l.current_phase < l.phase_count"
-                  type="button"
-                  class="text-wh-mute hover:text-wh-accent"
-                  @click="handleAdvancePhase(l.id)"
-                >
-                  Nästa fas
-                </button>
-                <button type="button" class="text-wh-mute hover:text-wh-accent" @click="startEdit(l)">
-                  Redigera
-                </button>
-                <button
-                  v-if="!l.is_archived"
-                  type="button"
-                  class="text-wh-mute hover:text-wh-accent"
-                  @click="handleArchive(l.id)"
-                >
-                  Arkivera
-                </button>
-                <button v-else type="button" class="text-wh-mute hover:text-wh-accent" @click="handleUnarchive(l.id)">
-                  Återställ
-                </button>
-                <button
-                  type="button"
-                  class="text-wh-mute hover:text-wh-accent"
-                  @click="handleDelete(l.id)"
-                >
-                  {{ confirmDeleteId === l.id ? 'Bekräfta radering' : 'Ta bort' }}
-                </button>
-              </div>
-            </div>
-          </template>
-        </li>
-        <li v-if="!allLeagues.length" class="text-sm text-wh-mute">Inga ligor skapade än.</li>
-      </ul>
-
-      <form class="space-y-3" @submit.prevent="submitLeague">
-        <div>
-          <label class="mb-1 block text-sm text-wh-mute">Ny liga</label>
-          <input
-            v-model="newLeagueName"
-            type="text"
-            required
-            placeholder="T.ex. Liga 1 2026"
-            class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-          >
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-wh-mute">Beskrivning (valfritt)</label>
-          <textarea
-            v-model="newLeagueDescription"
-            rows="2"
-            class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-          />
-        </div>
-        <div class="flex gap-3">
-          <div class="w-32">
-            <label class="mb-1 block text-sm text-wh-mute">Antal faser</label>
-            <input
-              v-model.number="newLeaguePhaseCount"
-              type="number"
-              min="1"
-              required
-              class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-            >
-          </div>
-          <div class="w-32">
-            <label class="mb-1 block text-sm text-wh-mute">Matcher per fas</label>
-            <input
-              v-model.number="newLeagueMatchesPerPhase"
-              type="number"
-              min="1"
-              required
-              class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-            >
-          </div>
-        </div>
-        <button type="submit" class="rounded-md bg-wh-accent px-4 py-2 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover">
-          Skapa
-        </button>
-      </form>
-      <p v-if="leagueError" class="mt-2 text-sm text-wh-accent">{{ leagueError }}</p>
-    </section>
-
-    <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-      <h2 class="mb-4 text-lg font-medium text-wh-ink">Skapa spelarkonto</h2>
-      <p class="mb-4 text-sm text-wh-mute">
-        Sätt ett tillfälligt lösenord och dela det själv med spelaren (Discord, SMS, i person). Spelaren måste byta
-        det vid första inloggning.
-      </p>
-      <form class="grid gap-3 sm:grid-cols-2" @submit.prevent="submitCreateUser">
-        <div>
-          <label class="mb-1 block text-sm text-wh-mute">Namn</label>
-          <input
-            v-model="newName"
-            type="text"
-            required
-            class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-          >
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-wh-mute">Armé (valfritt)</label>
-          <input
-            v-model="newArmy"
-            type="text"
-            class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-          >
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-wh-mute">E-post</label>
-          <input
-            v-model="newEmail"
-            type="email"
-            required
-            class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-          >
-        </div>
-        <div>
-          <label class="mb-1 block text-sm text-wh-mute">Tillfälligt lösenord</label>
-          <input
-            v-model="newPassword"
-            type="text"
-            required
-            minlength="6"
-            class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-          >
-        </div>
-        <div class="sm:col-span-2">
-          <label class="mb-1 block text-sm text-wh-mute">Lägg till i ligor (valfritt)</label>
-          <div class="space-y-1">
-            <label v-for="l in allLeagues" :key="l.id" class="flex items-center gap-2 text-sm text-wh-ink">
-              <input v-model="selectedLeagueIds" type="checkbox" :value="l.id" class="accent-wh-accent">
-              {{ l.name }}
-              <span v-if="l.is_active" class="text-xs text-wh-gold">Aktiv</span>
-              <span v-if="l.is_archived" class="text-xs text-wh-mute">Arkiverad</span>
-            </label>
-            <p v-if="!allLeagues.length" class="text-sm text-wh-mute">Inga ligor skapade än.</p>
-          </div>
-        </div>
-        <p v-if="createUserError" class="text-sm text-wh-accent sm:col-span-2">{{ createUserError }}</p>
-        <button
-          type="submit"
-          :disabled="creatingUser"
-          class="rounded-md bg-wh-accent px-4 py-2 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover disabled:opacity-50 sm:col-span-2"
-        >
-          {{ creatingUser ? 'Skapar...' : 'Skapa konto' }}
-        </button>
-      </form>
-
-      <div v-if="lastCreatedAccount" class="mt-4 rounded-md border border-wh-gold/50 bg-wh-surface-alt p-4 text-sm">
-        <p class="text-wh-ink">
-          Kontot för <span class="font-medium">{{ lastCreatedAccount.name }}</span> skapades. Dela inloggningen:
-        </p>
-        <p class="mt-2 text-wh-mute">E-post: {{ lastCreatedAccount.email }}</p>
-        <p class="text-wh-mute">Lösenord: {{ lastCreatedAccount.password }}</p>
+  <div class="max-w-3xl space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h1 class="text-2xl font-semibold text-wh-ink">Admin</h1>
+      <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          class="mt-3 rounded-md border border-wh-border px-3 py-1.5 text-xs text-wh-ink hover:border-wh-accent hover:text-wh-accent"
-          @click="copyCredentials"
+          class="rounded-md border border-wh-border px-3 py-1.5 text-sm text-wh-ink hover:border-wh-accent"
+          @click="showAccountModal = true"
         >
-          Kopiera meddelande
+          + Nytt konto
         </button>
-        <span v-if="copyMessage" class="ml-2 text-xs text-wh-mute">{{ copyMessage }}</span>
-      </div>
-    </section>
-
-    <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-      <h2 class="mb-4 text-lg font-medium text-wh-ink">Alla konton</h2>
-      <p v-if="addToLeagueError" class="mb-3 text-sm text-wh-accent">{{ addToLeagueError }}</p>
-      <ul class="space-y-2">
-        <li
-          v-for="p in profiles"
-          :key="p.id"
-          class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-wh-border p-3 text-sm"
+        <button
+          type="button"
+          class="rounded-md bg-wh-accent px-3 py-1.5 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover"
+          @click="openCreateLeagueModal"
         >
-          <div>
-            <NuxtLink :to="`/players/${p.id}`" class="text-wh-ink hover:text-wh-gold hover:underline">
-              {{ p.name }}
-            </NuxtLink>
-            <span class="text-xs text-wh-mute">({{ p.email }})</span>
-            <div class="mt-1 flex flex-wrap gap-1">
-              <span
-                v-for="leagueId in leaguesForUser(p.id)"
-                :key="leagueId"
-                class="rounded-full border border-wh-border px-2 py-0.5 text-xs text-wh-mute"
-              >
-                {{ leagueName(leagueId) }}
-              </span>
-              <span v-if="!leaguesForUser(p.id).length" class="text-xs text-wh-mute">Ingen liga</span>
-            </div>
-          </div>
-          <select
-            v-if="availableLeaguesFor(p.id).length"
-            class="rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-xs text-wh-ink outline-none focus:border-wh-accent"
-            @change="handleAddToLeague(p.id, $event)"
-          >
-            <option value="" disabled selected>Lägg till i liga...</option>
-            <option v-for="l in availableLeaguesFor(p.id)" :key="l.id" :value="l.id">{{ l.name }}</option>
-          </select>
-        </li>
-        <li v-if="!profiles.length" class="text-sm text-wh-mute">Inga konton skapade än.</li>
-      </ul>
-    </section>
+          + Ny liga
+        </button>
+      </div>
+    </div>
 
+    <!-- Currently managed league -->
     <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-      <h2 class="mb-4 text-lg font-medium text-wh-ink">Medlemmar {{ selectedLeague ? `i ${selectedLeague.name}` : '' }}</h2>
-
-      <div v-if="!selectedLeague" class="text-sm text-wh-mute">Skapa en liga och klicka "Hantera" på den först.</div>
-
-      <template v-else>
-        <p v-if="paintError" class="mb-3 text-sm text-wh-accent">{{ paintError }}</p>
-        <ul class="mb-4 space-y-2">
-          <li
-            v-for="m in members"
-            :key="m.user_id"
-            class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-wh-border p-3 text-sm"
-          >
-            <span class="text-wh-ink">{{ profileName(m.user_id) }}</span>
-            <div class="flex flex-wrap items-center gap-3">
-              <label
-                v-for="(unit, index) in PAINTED_UNIT_KEYS"
-                :key="unit"
-                class="flex items-center gap-1 text-xs text-wh-mute"
-              >
-                <input
-                  type="checkbox"
-                  class="accent-wh-accent"
-                  :checked="isPainted(m.user_id, unit)"
-                  @change="handleTogglePainted(m.user_id, unit, $event)"
-                >
-                Unit {{ index + 1 }}
-              </label>
-              <span class="text-xs text-wh-gold">{{ paintingPointsFor(m.user_id) }}p målat</span>
-              <button type="button" class="text-wh-mute hover:text-wh-accent" @click="removeMember(m.user_id)">
-                Ta bort
-              </button>
-            </div>
-          </li>
-          <li v-if="!members.length" class="text-sm text-wh-mute">Inga medlemmar i ligan än.</li>
-        </ul>
-
-        <div v-if="nonMembers.length" class="flex flex-wrap items-end gap-3">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <label class="mb-1 block text-xs text-wh-mute">Hanterar liga</label>
           <select
-            id="add-member-select"
+            :value="selectedLeague?.id ?? ''"
             class="rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-            @change="addMember(($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).value = ''"
+            @change="handleSelectLeague(($event.target as HTMLSelectElement).value)"
           >
-            <option value="" disabled selected>Lägg till spelare...</option>
-            <option v-for="p in nonMembers" :key="p.id" :value="p.id">{{ p.name || p.email }}</option>
+            <option v-if="!allLeagues.length" value="" disabled>Inga ligor än</option>
+            <option v-for="l in allLeagues" :key="l.id" :value="l.id">
+              {{ l.name }}{{ l.is_archived ? ' (arkiverad)' : '' }}
+            </option>
           </select>
+
+          <template v-if="selectedLeague">
+            <span v-if="selectedLeague.is_active" class="ml-2 text-sm text-wh-gold">Aktiv</span>
+            <p v-if="selectedLeague.description" class="mt-2 text-sm text-wh-mute">{{ selectedLeague.description }}</p>
+            <p class="mt-1 text-xs text-wh-mute">
+              Fas {{ selectedLeague.current_phase }} av {{ selectedLeague.phase_count }} ·
+              {{ selectedLeague.matches_per_phase }} matcher/fas
+            </p>
+          </template>
+          <p v-else class="mt-2 text-sm text-wh-mute">Skapa en liga för att komma igång.</p>
         </div>
-      </template>
-    </section>
 
-    <section v-if="selectedLeague" class="rounded-lg border border-wh-border bg-wh-surface p-6">
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-lg font-medium text-wh-ink">Redo att spela</h2>
-        <button
-          type="button"
-          :disabled="signups.length < 2"
-          class="rounded-md bg-wh-accent px-4 py-2 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover disabled:opacity-50"
-          @click="handlePairAll"
-        >
-          Lotta alla
-        </button>
-      </div>
-      <p v-if="pairError" class="mb-3 text-sm text-wh-accent">{{ pairError }}</p>
-      <ul class="space-y-2">
-        <li
-          v-for="s in signups"
-          :key="s.id"
-          class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-wh-border p-3 text-sm"
-        >
-          <div>
-            <span class="text-wh-ink">{{ profileName(s.user_id) }}</span>
-            <details class="mt-1">
-              <summary class="cursor-pointer text-xs text-wh-gold">Visa lista</summary>
-              <pre class="mt-1 max-w-md whitespace-pre-wrap rounded-md border border-wh-border bg-wh-surface-alt p-2 text-xs text-wh-ink">{{ s.army_list }}</pre>
-            </details>
-          </div>
+        <div v-if="selectedLeague" class="flex flex-wrap gap-3 text-xs">
           <button
+            v-if="selectedLeague.is_active && selectedLeague.current_phase < selectedLeague.phase_count"
             type="button"
-            :disabled="signups.length < 2"
-            class="rounded-md border border-wh-border px-3 py-1.5 text-wh-mute hover:border-wh-accent hover:text-wh-accent disabled:opacity-50"
-            @click="handlePairIndividual(s.user_id)"
+            class="text-wh-mute hover:text-wh-accent"
+            @click="handleAdvancePhase(selectedLeague.id)"
           >
-            Lotta denna spelare
+            Nästa fas
           </button>
-        </li>
-        <li v-if="!signups.length" class="text-sm text-wh-mute">Ingen är redo just nu.</li>
-      </ul>
+          <button type="button" class="text-wh-mute hover:text-wh-accent" @click="openEditLeagueModal(selectedLeague)">
+            Redigera
+          </button>
+          <button
+            v-if="selectedLeague.is_active && !selectedLeague.is_archived"
+            type="button"
+            class="text-wh-mute hover:text-wh-accent"
+            @click="handleDeactivate(selectedLeague.id)"
+          >
+            Avaktivera
+          </button>
+          <button
+            v-else-if="!selectedLeague.is_archived"
+            type="button"
+            class="text-wh-mute hover:text-wh-accent"
+            @click="handleActivate(selectedLeague.id)"
+          >
+            Gör aktiv
+          </button>
+        </div>
+      </div>
+      <p v-if="leagueActionError" class="mt-3 text-sm text-wh-accent">{{ leagueActionError }}</p>
     </section>
 
-    <section v-if="disputedMatches.length" class="rounded-lg border border-wh-border bg-wh-surface p-6">
-      <h2 class="mb-4 text-lg font-medium text-wh-ink">Bestridda matcher</h2>
+    <!-- Disputed matches: always visible when present, needs attention -->
+    <section v-if="disputedMatches.length" class="rounded-lg border border-wh-accent/50 bg-wh-surface p-6">
+      <h2 class="mb-4 text-lg font-medium text-wh-accent">Bestridda matcher</h2>
       <p v-if="disputeError" class="mb-3 text-sm text-wh-accent">{{ disputeError }}</p>
       <ul class="space-y-3">
         <li v-for="m in disputedMatches" :key="m.id" class="rounded-md border border-wh-border p-3 text-sm">
@@ -782,6 +422,219 @@ async function handleTogglePainted(userId: string, unit: PaintedUnitKey, event: 
         </li>
       </ul>
     </section>
+
+    <!-- Ready to play -->
+    <CollapsibleSection v-if="selectedLeague" title="Redo att spela" default-open :badge="signups.length || undefined">
+      <div class="mb-4 flex justify-end">
+        <button
+          type="button"
+          :disabled="signups.length < 2"
+          class="rounded-md bg-wh-accent px-4 py-2 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover disabled:opacity-50"
+          @click="handlePairAll"
+        >
+          Lotta alla
+        </button>
+      </div>
+      <p v-if="pairError" class="mb-3 text-sm text-wh-accent">{{ pairError }}</p>
+      <ul class="space-y-2">
+        <li
+          v-for="s in signups"
+          :key="s.id"
+          class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-wh-border p-3 text-sm"
+        >
+          <div>
+            <span class="text-wh-ink">{{ profileName(s.user_id) }}</span>
+            <details class="mt-1">
+              <summary class="cursor-pointer text-xs text-wh-gold">Visa lista</summary>
+              <pre class="mt-1 max-w-md whitespace-pre-wrap rounded-md border border-wh-border bg-wh-surface-alt p-2 text-xs text-wh-ink">{{ s.army_list }}</pre>
+            </details>
+          </div>
+          <button
+            type="button"
+            :disabled="signups.length < 2"
+            class="rounded-md border border-wh-border px-3 py-1.5 text-wh-mute hover:border-wh-accent hover:text-wh-accent disabled:opacity-50"
+            @click="handlePairIndividual(s.user_id)"
+          >
+            Lotta denna spelare
+          </button>
+        </li>
+        <li v-if="!signups.length" class="text-sm text-wh-mute">Ingen är redo just nu.</li>
+      </ul>
+    </CollapsibleSection>
+
+    <!-- Members -->
+    <CollapsibleSection
+      v-if="selectedLeague"
+      :title="`Medlemmar i ${selectedLeague.name}`"
+      default-open
+      :badge="members.length || undefined"
+    >
+      <p v-if="paintError" class="mb-3 text-sm text-wh-accent">{{ paintError }}</p>
+      <ul class="mb-4 space-y-2">
+        <li
+          v-for="m in members"
+          :key="m.user_id"
+          class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-wh-border p-3 text-sm"
+        >
+          <span class="text-wh-ink">{{ profileName(m.user_id) }}</span>
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-1" title="Målade units">
+              <button
+                v-for="(unit, index) in PAINTED_UNIT_KEYS"
+                :key="unit"
+                type="button"
+                :title="`Unit ${index + 1}`"
+                :class="[
+                  'flex h-6 w-6 items-center justify-center rounded text-xs font-medium transition-colors',
+                  isPainted(m.user_id, unit)
+                    ? 'bg-wh-gold text-wh-bg'
+                    : 'border border-wh-border text-wh-mute hover:border-wh-gold'
+                ]"
+                @click="handleTogglePainted(m.user_id, unit)"
+              >
+                {{ index + 1 }}
+              </button>
+              <span class="ml-1 text-xs text-wh-mute">{{ paintingPointsFor(m.user_id) }}p</span>
+            </div>
+            <button type="button" class="text-wh-mute hover:text-wh-accent" @click="removeMember(m.user_id)">
+              Ta bort
+            </button>
+          </div>
+        </li>
+        <li v-if="!members.length" class="text-sm text-wh-mute">Inga medlemmar i ligan än.</li>
+      </ul>
+
+      <div v-if="nonMembers.length" class="flex flex-wrap items-end gap-3">
+        <select
+          id="add-member-select"
+          class="rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+          @change="addMember(($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).value = ''"
+        >
+          <option value="" disabled selected>Lägg till spelare...</option>
+          <option v-for="p in nonMembers" :key="p.id" :value="p.id">{{ p.name || p.email }}</option>
+        </select>
+      </div>
+    </CollapsibleSection>
+
+    <!-- All leagues -->
+    <CollapsibleSection title="Alla ligor" :badge="allLeagues.length || undefined">
+      <ul class="space-y-3">
+        <li v-for="l in allLeagues" :key="l.id" class="rounded-md border border-wh-border p-3 text-sm">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <span class="text-wh-ink">{{ l.name }}</span>
+              <span v-if="l.id === selectedLeague?.id" class="ml-2 text-xs text-wh-mute">(hanteras nu)</span>
+              <span v-if="l.is_active" class="ml-2 text-wh-gold">Aktiv</span>
+              <span v-if="l.is_archived" class="ml-2 text-wh-mute">Arkiverad</span>
+              <p v-if="l.description" class="mt-1 text-xs text-wh-mute">{{ l.description }}</p>
+              <p class="mt-1 text-xs text-wh-mute">
+                Fas {{ l.current_phase }} av {{ l.phase_count }} · {{ l.matches_per_phase }} matcher/fas
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-3 text-xs">
+              <button
+                v-if="l.id !== selectedLeague?.id"
+                type="button"
+                class="text-wh-mute hover:text-wh-accent"
+                @click="handleSelectLeague(l.id)"
+              >
+                Hantera
+              </button>
+              <button
+                v-if="!l.is_active && !l.is_archived"
+                type="button"
+                class="text-wh-mute hover:text-wh-accent"
+                @click="handleActivate(l.id)"
+              >
+                Gör aktiv
+              </button>
+              <button
+                v-if="l.is_active && !l.is_archived"
+                type="button"
+                class="text-wh-mute hover:text-wh-accent"
+                @click="handleDeactivate(l.id)"
+              >
+                Avaktivera
+              </button>
+              <button type="button" class="text-wh-mute hover:text-wh-accent" @click="openEditLeagueModal(l)">
+                Redigera
+              </button>
+              <button
+                v-if="!l.is_archived"
+                type="button"
+                class="text-wh-mute hover:text-wh-accent"
+                @click="handleArchive(l.id)"
+              >
+                Arkivera
+              </button>
+              <button v-else type="button" class="text-wh-mute hover:text-wh-accent" @click="handleUnarchive(l.id)">
+                Återställ
+              </button>
+              <button type="button" class="text-wh-mute hover:text-wh-accent" @click="handleDelete(l.id)">
+                {{ confirmDeleteId === l.id ? 'Bekräfta radering' : 'Ta bort' }}
+              </button>
+            </div>
+          </div>
+        </li>
+        <li v-if="!allLeagues.length" class="text-sm text-wh-mute">Inga ligor skapade än.</li>
+      </ul>
+    </CollapsibleSection>
+
+    <!-- All accounts -->
+    <CollapsibleSection title="Alla konton" :badge="profiles.length || undefined">
+      <p v-if="addToLeagueError" class="mb-3 text-sm text-wh-accent">{{ addToLeagueError }}</p>
+      <ul class="space-y-2">
+        <li
+          v-for="p in profiles"
+          :key="p.id"
+          class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-wh-border p-3 text-sm"
+        >
+          <div>
+            <NuxtLink :to="`/players/${p.id}`" class="text-wh-ink hover:text-wh-gold hover:underline">
+              {{ p.name }}
+            </NuxtLink>
+            <span class="text-xs text-wh-mute">({{ p.email }})</span>
+            <div class="mt-1 flex flex-wrap gap-1">
+              <span
+                v-for="leagueId in leaguesForUser(p.id)"
+                :key="leagueId"
+                class="rounded-full border border-wh-border px-2 py-0.5 text-xs text-wh-mute"
+              >
+                {{ leagueName(leagueId) }}
+              </span>
+              <span v-if="!leaguesForUser(p.id).length" class="text-xs text-wh-mute">Ingen liga</span>
+            </div>
+          </div>
+          <select
+            v-if="availableLeaguesFor(p.id).length"
+            class="rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-xs text-wh-ink outline-none focus:border-wh-accent"
+            @change="handleAddToLeague(p.id, $event)"
+          >
+            <option value="" disabled selected>Lägg till i liga...</option>
+            <option v-for="l in availableLeaguesFor(p.id)" :key="l.id" :value="l.id">{{ l.name }}</option>
+          </select>
+        </li>
+        <li v-if="!profiles.length" class="text-sm text-wh-mute">Inga konton skapade än.</li>
+      </ul>
+    </CollapsibleSection>
+
+    <LeagueFormModal
+      v-if="showLeagueModal"
+      :mode="leagueModalMode"
+      :initial-name="editingLeague?.name"
+      :initial-description="editingLeague?.description"
+      :initial-phase-count="editingLeague?.phase_count"
+      :initial-matches-per-phase="editingLeague?.matches_per_phase"
+      :on-submit="handleLeagueSubmit"
+      @close="showLeagueModal = false"
+    />
+
+    <NewAccountModal
+      v-if="showAccountModal"
+      :all-leagues="allLeagues"
+      :on-submit="handleCreateAccount"
+      @close="showAccountModal = false"
+    />
 
     <RematchModal
       v-if="rematchFor"

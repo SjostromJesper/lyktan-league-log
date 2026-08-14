@@ -96,9 +96,9 @@ function addSecondary(list: SecondaryEntry[], name: string) {
   list.push({
     name,
     discarded: false,
-    expanded: true,
     pointsPerRound: null,
-    roundsCompleted: Array.from({ length: 5 }, () => false)
+    roundsCompleted: Array.from({ length: 5 }, () => false),
+    notes: ''
   })
 }
 
@@ -249,6 +249,7 @@ async function submitReport() {
             label="Dina secondaries"
             :entries="mySecondaries"
             :available="availableSecondariesFor(mySecondaries)"
+            :max-points-per-round="MAX_POINTS_PER_ROUND"
             @add="name => addSecondary(mySecondaries, name)"
             @remove="i => removeSecondary(mySecondaries, i)"
           />
@@ -256,6 +257,7 @@ async function submitReport() {
             :label="`${opponentLabel}s secondaries`"
             :entries="opponentSecondaries"
             :available="availableSecondariesFor(opponentSecondaries)"
+            :max-points-per-round="MAX_POINTS_PER_ROUND"
             @add="name => addSecondary(opponentSecondaries, name)"
             @remove="i => removeSecondary(opponentSecondaries, i)"
           />

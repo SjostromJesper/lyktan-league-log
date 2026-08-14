@@ -29,6 +29,16 @@ export interface LeagueMember {
   joined_at: string
 }
 
+export interface PaintedUnits {
+  league_id: string
+  user_id: string
+  unit1: boolean
+  unit2: boolean
+  unit3: boolean
+  unit4: boolean
+  unit5: boolean
+}
+
 export interface Signup {
   id: string
   league_id: string
@@ -69,6 +79,7 @@ export interface Database {
       league_members: { Row: LeagueMember; Insert: Partial<LeagueMember>; Update: Partial<LeagueMember> }
       signups: { Row: Signup; Insert: Partial<Signup>; Update: Partial<Signup> }
       matches: { Row: Match; Insert: Partial<Match>; Update: Partial<Match> }
+      painted_units: { Row: PaintedUnits; Insert: Partial<PaintedUnits>; Update: Partial<PaintedUnits> }
     }
   }
 }

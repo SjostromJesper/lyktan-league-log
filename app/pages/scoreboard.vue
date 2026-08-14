@@ -35,6 +35,7 @@ function discord(userId: string) {
             <th class="px-4 py-3">Spelare</th>
             <th class="px-4 py-3 text-right">M</th>
             <th class="px-4 py-3 text-right">League Points</th>
+            <th class="px-4 py-3 text-right">Painted</th>
           </tr>
         </thead>
         <tbody>
@@ -49,6 +50,7 @@ function discord(userId: string) {
             </td>
             <td class="px-4 py-3 text-right text-wh-ink">{{ row.matchesPlayed }}</td>
             <td class="px-4 py-3 text-right font-semibold text-wh-gold">{{ row.leaguePoints }}</td>
+            <td class="px-4 py-3 text-right text-wh-ink">{{ row.paintingPoints }}</td>
           </tr>
         </tbody>
       </table>

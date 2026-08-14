@@ -1,4 +1,8 @@
-import type { League, LeagueMember, Match, Signup } from '~/types'
+import type { League, LeagueMember, Match, PaintedUnits, Signup } from '~/types'
+
+export const PAINTED_UNIT_KEYS = ['unit1', 'unit2', 'unit3', 'unit4', 'unit5'] as const
+export type PaintedUnitKey = (typeof PAINTED_UNIT_KEYS)[number]
+export const PAINTING_POINTS_PER_UNIT = 3
 
 export function useLeague() {
   const supabase = useSupabaseClient()
@@ -10,6 +14,7 @@ export function useLeague() {
   const allMembers = useState<LeagueMember[]>('all-league-members', () => [])
   const signups = useState<Signup[]>('league-signups', () => [])
   const matches = useState<Match[]>('league-matches', () => [])
+  const paintedUnits = useState<PaintedUnits[]>('league-painted-units', () => [])
   const loaded = useState('league-loaded', () => false)
 
   const selectedLeague = computed(() => allLeagues.value.find(l => l.id === selectedLeagueId.value) ?? null)
@@ -44,20 +49,24 @@ export function useLeague() {
       members.value = []
       signups.value = []
       matches.value = []
+      paintedUnits.value = []
       return
     }
-    const [{ data: memberData }, { data: signupData }, { data: matchData }] = await Promise.all([
-      supabase.from('league_members').select('*').eq('league_id', selectedLeagueId.value),
-      supabase.from('signups').select('*').eq('league_id', selectedLeagueId.value),
-      supabase
-        .from('matches')
-        .select('*')
-        .eq('league_id', selectedLeagueId.value)
-        .order('created_at', { ascending: false })
-    ])
+    const [{ data: memberData }, { data: signupData }, { data: matchData }, { data: paintedData }] =
+      await Promise.all([
+        supabase.from('league_members').select('*').eq('league_id', selectedLeagueId.value),
+        supabase.from('signups').select('*').eq('league_id', selectedLeagueId.value),
+        supabase
+          .from('matches')
+          .select('*')
+          .eq('league_id', selectedLeagueId.value)
+          .order('created_at', { ascending: false }),
+        supabase.from('painted_units').select('*').eq('league_id', selectedLeagueId.value)
+      ])
     members.value = (memberData as LeagueMember[]) ?? []
     signups.value = (signupData as Signup[]) ?? []
     matches.value = (matchData as Match[]) ?? []
+    paintedUnits.value = (paintedData as PaintedUnits[]) ?? []
   }
 
   async function selectLeague(leagueId: string) {
@@ -315,6 +324,21 @@ export function useLeague() {
     await refresh()
   }
 
+  function paintingPointsFor(userId: string) {
+    const row = paintedUnits.value.find(p => p.user_id === userId)
+    if (!row) return 0
+    return PAINTED_UNIT_KEYS.filter(key => row[key]).length * PAINTING_POINTS_PER_UNIT
+  }
+
+  async function setPaintedUnit(userId: string, unit: PaintedUnitKey, value: boolean) {
+    if (!selectedLeague.value) return
+    const { error } = await supabase
+      .from('painted_units')
+      .upsert({ league_id: selectedLeague.value.id, user_id: userId, [unit]: value }, { onConflict: 'league_id,user_id' })
+    if (error) throw new Error(error.message)
+    await refreshLeagueScopedData()
+  }
+
   const scoreboard = computed(() => {
     const tally: Record<string, { matchesPlayed: number; leaguePoints: number; wtcPoints: number; vpDiff: number }> = {}
     function ensure(id: string) {
@@ -341,7 +365,7 @@ export function useLeague() {
       p2.vpDiff += (m.player2_vp ?? 0) - (m.player1_vp ?? 0)
     }
     return Object.entries(tally)
-      .map(([userId, stats]) => ({ userId, ...stats }))
+      .map(([userId, stats]) => ({ userId, ...stats, paintingPoints: paintingPointsFor(userId) }))
       .sort((a, b) => b.leaguePoints - a.leaguePoints || b.wtcPoints - a.wtcPoints || b.vpDiff - a.vpDiff)
   })
 
@@ -355,6 +379,7 @@ export function useLeague() {
     leaguesForUser,
     signups,
     matches,
+    paintedUnits,
     loaded,
     isMember,
     mySignup,
@@ -365,6 +390,8 @@ export function useLeague() {
     disputedMatches,
     myPhaseMatchCount,
     scoreboard,
+    paintingPointsFor,
+    setPaintedUnit,
     refresh,
     createLeague,
     setActiveLeague,

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { League, Match, Signup } from '~/types'
+import { PAINTED_UNIT_KEYS, type PaintedUnitKey } from '~/composables/useLeague'
 
 definePageMeta({ middleware: 'admin' })
 
@@ -28,7 +29,10 @@ const {
   pairAll,
   pairIndividual,
   pairManual,
-  resolveDispute
+  resolveDispute,
+  paintingPointsFor,
+  setPaintedUnit,
+  paintedUnits
 } = useLeague()
 
 function leagueName(leagueId: string) {
@@ -314,6 +318,22 @@ async function handleVoidDispute(matchId: string) {
     delete disputeEdits[matchId]
   } catch (e) {
     disputeError.value = e instanceof Error ? e.message : 'Något gick fel.'
+  }
+}
+
+const paintError = ref('')
+
+function isPainted(userId: string, unit: PaintedUnitKey) {
+  return paintedUnits.value.find(p => p.user_id === userId)?.[unit] ?? false
+}
+
+async function handleTogglePainted(userId: string, unit: PaintedUnitKey, event: Event) {
+  paintError.value = ''
+  const checked = (event.target as HTMLInputElement).checked
+  try {
+    await setPaintedUnit(userId, unit, checked)
+  } catch (e) {
+    paintError.value = e instanceof Error ? e.message : 'Något gick fel.'
   }
 }
 </script>
@@ -631,16 +651,33 @@ async function handleVoidDispute(matchId: string) {
       <div v-if="!selectedLeague" class="text-sm text-wh-mute">Skapa en liga och klicka "Hantera" på den först.</div>
 
       <template v-else>
+        <p v-if="paintError" class="mb-3 text-sm text-wh-accent">{{ paintError }}</p>
         <ul class="mb-4 space-y-2">
           <li
             v-for="m in members"
             :key="m.user_id"
-            class="flex items-center justify-between gap-3 rounded-md border border-wh-border p-3 text-sm"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-wh-border p-3 text-sm"
           >
             <span class="text-wh-ink">{{ profileName(m.user_id) }}</span>
-            <button type="button" class="text-wh-mute hover:text-wh-accent" @click="removeMember(m.user_id)">
-              Ta bort
-            </button>
+            <div class="flex flex-wrap items-center gap-3">
+              <label
+                v-for="(unit, index) in PAINTED_UNIT_KEYS"
+                :key="unit"
+                class="flex items-center gap-1 text-xs text-wh-mute"
+              >
+                <input
+                  type="checkbox"
+                  class="accent-wh-accent"
+                  :checked="isPainted(m.user_id, unit)"
+                  @change="handleTogglePainted(m.user_id, unit, $event)"
+                >
+                Unit {{ index + 1 }}
+              </label>
+              <span class="text-xs text-wh-gold">{{ paintingPointsFor(m.user_id) }}p målat</span>
+              <button type="button" class="text-wh-mute hover:text-wh-accent" @click="removeMember(m.user_id)">
+                Ta bort
+              </button>
+            </div>
           </li>
           <li v-if="!members.length" class="text-sm text-wh-mute">Inga medlemmar i ligan än.</li>
         </ul>

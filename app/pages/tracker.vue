@@ -106,10 +106,17 @@ function removeSecondary(list: SecondaryEntry[], index: number) {
   list.splice(index, 1)
 }
 
+const MAX_POINTS_PER_ROUND = 15
+
 function secondaryPoints(list: SecondaryEntry[]) {
-  return list
-    .filter(s => !s.discarded)
-    .reduce((sum, s) => sum + s.roundsCompleted.filter(Boolean).length * (s.pointsPerRound ?? 0), 0)
+  let total = 0
+  for (let round = 0; round < 5; round++) {
+    const roundTotal = list
+      .filter(s => !s.discarded && s.roundsCompleted[round])
+      .reduce((sum, s) => sum + (s.pointsPerRound ?? 0), 0)
+    total += Math.min(MAX_POINTS_PER_ROUND, roundTotal)
+  }
+  return total
 }
 
 interface RoundScore {
@@ -119,8 +126,17 @@ interface RoundScore {
 
 const rounds = ref<RoundScore[]>(Array.from({ length: 5 }, () => ({ myPrimary: null, opponentPrimary: null })))
 
-const myPrimaryTotal = computed(() => rounds.value.reduce((sum, r) => sum + (r.myPrimary ?? 0), 0))
-const opponentPrimaryTotal = computed(() => rounds.value.reduce((sum, r) => sum + (r.opponentPrimary ?? 0), 0))
+function clampRoundPoints(value: number | null) {
+  if (value == null) return value
+  return Math.max(0, Math.min(MAX_POINTS_PER_ROUND, value))
+}
+
+const myPrimaryTotal = computed(() =>
+  rounds.value.reduce((sum, r) => sum + Math.min(MAX_POINTS_PER_ROUND, r.myPrimary ?? 0), 0)
+)
+const opponentPrimaryTotal = computed(() =>
+  rounds.value.reduce((sum, r) => sum + Math.min(MAX_POINTS_PER_ROUND, r.opponentPrimary ?? 0), 0)
+)
 
 const mySecondaryTotal = computed(() => secondaryPoints(mySecondaries.value))
 const opponentSecondaryTotal = computed(() => secondaryPoints(opponentSecondaries.value))
@@ -225,7 +241,8 @@ async function submitReport() {
         <h2 class="mb-1 text-lg font-medium text-wh-ink">Secondaries (valfritt)</h2>
         <p class="mb-4 text-xs text-wh-mute">
           Sätt poäng per runda för secondaryn och bocka i vilka rundor du klarade den, så summeras det automatiskt.
-          Discarda en secondary för att gråa ut den och nolla dess poäng.
+          Discarda en secondary för att gråa ut den och nolla dess poäng. Max {{ MAX_POINTS_PER_ROUND }} totala
+          secondary-poäng per runda.
         </p>
         <div class="grid gap-4 sm:grid-cols-2">
           <SecondaryTracker
@@ -246,7 +263,8 @@ async function submitReport() {
       </section>
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-        <h2 class="mb-4 text-lg font-medium text-wh-ink">Primary-poäng per runda</h2>
+        <h2 class="mb-1 text-lg font-medium text-wh-ink">Primary-poäng per runda</h2>
+        <p class="mb-4 text-xs text-wh-mute">Max {{ MAX_POINTS_PER_ROUND }} poäng per runda.</p>
         <div class="space-y-3">
           <div v-for="(r, i) in rounds" :key="i" class="rounded-md border border-wh-border p-3">
             <p class="mb-2 text-xs font-medium text-wh-mute">Runda {{ i + 1 }}</p>
@@ -257,8 +275,10 @@ async function submitReport() {
                   v-model.number="r.myPrimary"
                   type="number"
                   min="0"
+                  :max="MAX_POINTS_PER_ROUND"
                   inputmode="numeric"
                   class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+                  @change="r.myPrimary = clampRoundPoints(r.myPrimary)"
                 >
               </div>
               <div>
@@ -267,8 +287,10 @@ async function submitReport() {
                   v-model.number="r.opponentPrimary"
                   type="number"
                   min="0"
+                  :max="MAX_POINTS_PER_ROUND"
                   inputmode="numeric"
                   class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+                  @change="r.opponentPrimary = clampRoundPoints(r.opponentPrimary)"
                 >
               </div>
             </div>

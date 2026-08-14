@@ -67,15 +67,20 @@ function handleAdd(event: Event) {
           </div>
           <div>
             <p class="mb-1 text-xs text-wh-mute">Klar i runda</p>
-            <div class="flex flex-wrap gap-3">
-              <label
+            <div class="flex gap-2">
+              <button
                 v-for="(done, ri) in entry.roundsCompleted"
                 :key="ri"
-                class="flex items-center gap-1 text-sm text-wh-ink"
+                type="button"
+                :title="`Runda ${ri + 1}`"
+                :class="[
+                  'flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-colors',
+                  done ? 'bg-wh-gold text-wh-bg' : 'border border-wh-border text-wh-mute hover:border-wh-gold'
+                ]"
+                @click="entry.roundsCompleted[ri] = !entry.roundsCompleted[ri]"
               >
-                <input v-model="entry.roundsCompleted[ri]" type="checkbox" class="accent-wh-accent">
                 {{ ri + 1 }}
-              </label>
+              </button>
             </div>
           </div>
         </div>

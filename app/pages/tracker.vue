@@ -72,9 +72,14 @@ const SECONDARY_MISSIONS = [
 const myDisposition = ref<Disposition | ''>('')
 const opponentDisposition = ref<Disposition | ''>('')
 
-const missionName = computed(() => {
+const myMissionName = computed(() => {
   if (!myDisposition.value || !opponentDisposition.value) return null
   return MISSION_MATRIX[myDisposition.value][opponentDisposition.value]
+})
+
+const opponentMissionName = computed(() => {
+  if (!myDisposition.value || !opponentDisposition.value) return null
+  return MISSION_MATRIX[opponentDisposition.value][myDisposition.value]
 })
 
 const mySecondary1 = ref('')
@@ -184,9 +189,16 @@ async function submitReport() {
             </select>
           </div>
         </div>
-        <p v-if="missionName" class="mt-4 rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-sm text-wh-ink">
-          Primary mission: <span class="font-semibold text-wh-gold">{{ missionName }}</span>
-        </p>
+        <div v-if="myMissionName && opponentMissionName" class="mt-4 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-sm text-wh-ink">
+            <p class="text-xs text-wh-mute">Din primary mission</p>
+            <p class="mt-1 font-semibold text-wh-gold">{{ myMissionName }}</p>
+          </div>
+          <div class="rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-sm text-wh-ink">
+            <p class="text-xs text-wh-mute">{{ opponentLabel }}s primary mission</p>
+            <p class="mt-1 font-semibold text-wh-gold">{{ opponentMissionName }}</p>
+          </div>
+        </div>
       </section>
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
@@ -231,55 +243,52 @@ async function submitReport() {
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
         <h2 class="mb-4 text-lg font-medium text-wh-ink">Poäng per runda</h2>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="text-wh-mute">
-              <tr>
-                <th class="py-2 pr-2">Runda</th>
-                <th class="px-2 py-2">Din primary</th>
-                <th class="px-2 py-2">Din secondary</th>
-                <th class="px-2 py-2">Motst. primary</th>
-                <th class="px-2 py-2">Motst. secondary</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r, i) in rounds" :key="i" class="border-t border-wh-border">
-                <td class="py-2 pr-2 text-wh-mute">{{ i + 1 }}</td>
-                <td class="px-2 py-2">
-                  <input
-                    v-model.number="r.myPrimary"
-                    type="number"
-                    min="0"
-                    class="w-16 rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-wh-ink outline-none focus:border-wh-accent"
-                  >
-                </td>
-                <td class="px-2 py-2">
-                  <input
-                    v-model.number="r.mySecondary"
-                    type="number"
-                    min="0"
-                    class="w-16 rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-wh-ink outline-none focus:border-wh-accent"
-                  >
-                </td>
-                <td class="px-2 py-2">
-                  <input
-                    v-model.number="r.opponentPrimary"
-                    type="number"
-                    min="0"
-                    class="w-16 rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-wh-ink outline-none focus:border-wh-accent"
-                  >
-                </td>
-                <td class="px-2 py-2">
-                  <input
-                    v-model.number="r.opponentSecondary"
-                    type="number"
-                    min="0"
-                    class="w-16 rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-wh-ink outline-none focus:border-wh-accent"
-                  >
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="space-y-3">
+          <div v-for="(r, i) in rounds" :key="i" class="rounded-md border border-wh-border p-3">
+            <p class="mb-2 text-xs font-medium text-wh-mute">Runda {{ i + 1 }}</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="mb-1 block text-xs text-wh-mute">Din primary</label>
+                <input
+                  v-model.number="r.myPrimary"
+                  type="number"
+                  min="0"
+                  inputmode="numeric"
+                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+                >
+              </div>
+              <div>
+                <label class="mb-1 block text-xs text-wh-mute">Din secondary</label>
+                <input
+                  v-model.number="r.mySecondary"
+                  type="number"
+                  min="0"
+                  inputmode="numeric"
+                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+                >
+              </div>
+              <div>
+                <label class="mb-1 block text-xs text-wh-mute">Motst. primary</label>
+                <input
+                  v-model.number="r.opponentPrimary"
+                  type="number"
+                  min="0"
+                  inputmode="numeric"
+                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+                >
+              </div>
+              <div>
+                <label class="mb-1 block text-xs text-wh-mute">Motst. secondary</label>
+                <input
+                  v-model.number="r.opponentSecondary"
+                  type="number"
+                  min="0"
+                  inputmode="numeric"
+                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+                >
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="mt-4 grid grid-cols-2 gap-4">

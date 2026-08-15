@@ -8,9 +8,11 @@ export interface PrimaryMissionOption {
   // bonus checkbox (below) can scale itself off whichever tier is actually ticked.
   tierGroup?: string
   tierCount?: number
-  // When set, this option isn't worth a flat `points` — instead `points` is a
-  // per-unit rate multiplied by the ticked tierCount(s) in the same tierGroup.
+  // When set, this option is worth `points` flat (e.g. the objective's own base rate)
+  // plus `scaleRate` per ticked tierCount(s) in the same tierGroup — not `points` alone,
+  // since a "scales" bonus is often on top of a flat contribution, not a pure multiplier.
   scalesWithTierGroup?: string
+  scaleRate?: number
 }
 
 export function primaryOptionPoints(option: PrimaryMissionOption, options: PrimaryMissionOption[], round: number) {
@@ -18,7 +20,7 @@ export function primaryOptionPoints(option: PrimaryMissionOption, options: Prima
   const tierCount = options
     .filter(o => o.tierGroup === option.scalesWithTierGroup && o.roundsCompleted[round - 1])
     .reduce((sum, o) => sum + (o.tierCount ?? 0), 0)
-  return option.points * tierCount
+  return option.points + (option.scaleRate ?? 0) * tierCount
 }
 
 export function primaryRoundPoints(options: PrimaryMissionOption[], round: number) {

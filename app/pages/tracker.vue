@@ -178,6 +178,7 @@ interface PrimaryScoringOption {
   tierGroup?: string
   tierCount?: number
   scalesWithTierGroup?: string
+  scaleRate?: number
 }
 
 const R_ANY = [1, 2, 3, 4, 5]
@@ -222,13 +223,14 @@ function objectiveTiers(
   rounds: number[],
   timing: string,
   max = 4,
-  tierGroup?: string
+  tierGroup?: string,
+  exclHome = true
 ): PrimaryScoringOption[] {
   return countTiers(
     rate,
     rounds,
     timing,
-    (n, plus) => `Control ${n}${plus} objective${n > 1 ? 's' : ''} (excl. home)`,
+    (n, plus) => `Control ${n}${plus} objective${n > 1 ? 's' : ''}${exclHome ? ' (excl. home)' : ''}`,
     max,
     tierGroup
   )
@@ -242,8 +244,9 @@ const PRIMARY_MISSION_SCORING: Record<string, PrimaryScoringOption[]> = {
     { label: 'Control more objectives than your opponent', points: 2, timing: T_TURN, rounds: [1, 2] },
     ...objectiveTiers(3, R_2_5, T_CMD, 4, 'bd-objectives'),
     {
-      label: 'Also control your home objective',
-      points: 2,
+      label: 'Also control your home objective (+3p for it, +2p per other objective ticked above)',
+      points: 3,
+      scaleRate: 2,
       timing: T_CMD,
       rounds: R_2_5,
       scalesWithTierGroup: 'bd-objectives'
@@ -261,19 +264,19 @@ const PRIMARY_MISSION_SCORING: Record<string, PrimaryScoringOption[]> = {
       T_TURN,
       (n, plus) => `${n}${plus} objective${n > 1 ? 's' : ''} you didn't control at the start of the turn (excl. home)`
     ),
-    ...objectiveTiers(3, R_2_5, T_CMD),
+    ...objectiveTiers(3, R_2_5, T_CMD, 4, undefined, false),
     { label: "Bonus: those objectives are in your opponent's territory", points: 3, timing: T_CMD, rounds: R_2_5 }
   ],
   'Purge and Secure': [
     { label: 'One or more enemy units destroyed this turn by a friendly unit near an objective', points: 3, timing: T_TURN, rounds: R_ANY },
     { label: 'One or more enemy units that started the turn near an objective were destroyed this turn', points: 3, timing: T_TURN, rounds: R_ANY },
     ...objectiveTiers(4, R_2_5, T_CMD),
-    ...countTiers(
-      3,
-      R_2_5,
-      T_TURN,
-      (n, plus) => `${n}${plus} objective${n > 1 ? 's' : ''} you didn't control at the start of the turn (excl. home)`
-    )
+    {
+      label: "Control 1+ objective you didn't control at the start of the turn (excl. home)",
+      points: 3,
+      timing: T_TURN,
+      rounds: R_2_5
+    }
   ],
   'Inescapable Dominion': [
     { label: 'Control three or more objectives', points: 4, timing: T_TURN, rounds: R_ANY },
@@ -308,7 +311,7 @@ const PRIMARY_MISSION_SCORING: Record<string, PrimaryScoringOption[]> = {
   ],
   "Destroyer's Wrath": [
     { label: 'One or more enemy units destroyed this turn', points: 3, timing: T_TURN, rounds: R_ANY },
-    ...objectiveTiers(4, R_2_5, T_CMD),
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
     { label: 'Control more objectives than your opponent', points: 6, timing: T_CMD, rounds: R_2_5 },
     { label: 'More enemy units destroyed this turn than friendly units destroyed last turn', points: 4, timing: T_TURN, rounds: R_2_5 }
   ],
@@ -451,6 +454,7 @@ function buildPrimaryOptions(name: string | null): PrimaryMissionOption[] {
     tierGroup: o.tierGroup,
     tierCount: o.tierCount,
     scalesWithTierGroup: o.scalesWithTierGroup,
+    scaleRate: o.scaleRate,
     roundsCompleted: Array.from({ length: 5 }, () => false)
   }))
 }

@@ -26,7 +26,12 @@ const roundTotal = computed(() => primaryRoundPoints(props.options, activeRound.
 const missionTotal = computed(() => primaryMissionTotal(props.options, props.maxPointsPerRound))
 
 function displayPoints(opt: PrimaryMissionOption) {
-  if (opt.scalesWithTierGroup) return `${opt.points}p/obj`
+  if (opt.scalesWithTierGroup) {
+    const parts = []
+    if (opt.points) parts.push(`${opt.points}p`)
+    if (opt.scaleRate) parts.push(`${opt.scaleRate}p/obj`)
+    return parts.join(' + ') || '0p'
+  }
   return `${primaryOptionPoints(opt, props.options, activeRound.value)}p`
 }
 

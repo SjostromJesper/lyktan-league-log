@@ -754,15 +754,38 @@ onMounted(async () => {
       <template v-else>Standalone tracking — not linked to a league match right now.</template>
     </p>
 
-    <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-      <h2 class="mb-1 text-lg font-medium text-wh-ink">Report to league</h2>
-      <label v-if="hasReportableMatch" class="mt-2 flex items-center gap-2 text-sm text-wh-ink">
-        <input v-model="applyToMatch" type="checkbox" class="accent-wh-accent">
-        Apply the final score to my ongoing match against {{ opponentLabel }}
-      </label>
-      <p v-else class="mt-2 text-sm text-wh-mute">
-        No ongoing league match to report to right now — this tracking session isn't saved anywhere.
-      </p>
+    <section class="rounded-lg border border-wh-border bg-wh-surface p-4">
+      <h2 class="mb-2 text-lg font-medium text-wh-ink">Score</h2>
+      <div class="grid grid-cols-2 gap-3">
+        <div
+          class="rounded-md border p-3"
+          :class="
+            myTotal > opponentTotal
+              ? 'border-emerald-500/50 bg-emerald-500/10'
+              : myTotal < opponentTotal
+                ? 'border-wh-accent/50 bg-wh-accent/10'
+                : 'border-wh-border bg-wh-surface-alt'
+          "
+        >
+          <p class="text-xs text-wh-mute">You</p>
+          <p class="text-xl font-semibold text-wh-ink">{{ myTotal }}</p>
+          <p class="text-xs text-wh-mute">{{ myPrimaryTotal }} primary + {{ mySecondaryTotal }} secondary</p>
+        </div>
+        <div
+          class="rounded-md border p-3"
+          :class="
+            opponentTotal > myTotal
+              ? 'border-emerald-500/50 bg-emerald-500/10'
+              : opponentTotal < myTotal
+                ? 'border-wh-accent/50 bg-wh-accent/10'
+                : 'border-wh-border bg-wh-surface-alt'
+          "
+        >
+          <p class="truncate text-xs text-wh-mute">{{ opponentLabel }}</p>
+          <p class="text-xl font-semibold text-wh-ink">{{ opponentTotal }}</p>
+          <p class="text-xs text-wh-mute">{{ opponentPrimaryTotal }} primary + {{ opponentSecondaryTotal }} secondary</p>
+        </div>
+      </div>
     </section>
 
     <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
@@ -852,26 +875,14 @@ onMounted(async () => {
       </section>
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-        <h2 class="mb-1 text-lg font-medium text-wh-ink">Primary points</h2>
-        <p class="mb-4 text-xs text-wh-mute">
-          <template v-if="myMissionName">Tracked via the round checklists in the Disposition section above.</template>
-          <template v-else>Pick a disposition for both players above to track primary scoring.</template>
+        <h2 class="mb-1 text-lg font-medium text-wh-ink">Report to league</h2>
+        <label v-if="hasReportableMatch" class="mt-2 flex items-center gap-2 text-sm text-wh-ink">
+          <input v-model="applyToMatch" type="checkbox" class="accent-wh-accent">
+          Apply the final score to my ongoing match against {{ opponentLabel }}
+        </label>
+        <p v-else class="mt-2 text-sm text-wh-mute">
+          No ongoing league match to report to right now — this tracking session isn't saved anywhere.
         </p>
-
-        <div class="mt-4 grid grid-cols-2 gap-4">
-          <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">
-            <p class="text-xs text-wh-mute">Your total VP</p>
-            <p class="mt-1 text-xl font-semibold text-wh-ink">{{ myTotal }}</p>
-            <p class="text-xs text-wh-mute">{{ myPrimaryTotal }} primary + {{ mySecondaryTotal }} secondary</p>
-          </div>
-          <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">
-            <p class="text-xs text-wh-mute">{{ opponentLabel }}'s total VP</p>
-            <p class="mt-1 text-xl font-semibold text-wh-ink">{{ opponentTotal }}</p>
-            <p class="text-xs text-wh-mute">
-              {{ opponentPrimaryTotal }} primary + {{ opponentSecondaryTotal }} secondary
-            </p>
-          </div>
-        </div>
 
         <p v-if="reportError" class="mt-3 text-sm text-wh-accent">{{ reportError }}</p>
         <button
@@ -884,7 +895,7 @@ onMounted(async () => {
           {{ reportSubmitting ? 'Reporting...' : 'Report result' }}
         </button>
         <p v-else-if="hasReportableMatch" class="mt-4 text-sm text-wh-mute">
-          Tick "Report to league" above if you want to apply this result to your ongoing match.
+          Tick the checkbox above if you want to apply this result to your ongoing match.
         </p>
         <p v-else class="mt-4 text-sm text-wh-mute">Standalone tracking — not saved anywhere.</p>
       </section>

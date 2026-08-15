@@ -76,10 +76,31 @@ function handleOptionClick(opt: PrimaryMissionOption) {
       <label
         v-for="(opt, oi) in roundOptions"
         :key="oi"
-        class="flex items-start justify-between gap-2 rounded-md border border-wh-border bg-wh-surface px-2 py-1.5 text-xs text-wh-ink"
+        class="flex cursor-pointer items-start justify-between gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors"
+        :class="
+          opt.roundsCompleted[activeRound - 1]
+            ? 'border-wh-gold bg-wh-gold/10 text-wh-ink'
+            : 'border-wh-border bg-wh-surface text-wh-ink hover:border-wh-gold/50'
+        "
       >
         <span class="flex items-start gap-2">
-          <input :type="opt.tierGroup ? 'radio' : 'checkbox'" :checked="opt.roundsCompleted[activeRound - 1]" class="mt-0.5 accent-wh-accent" @click.prevent="handleOptionClick(opt)">
+          <input
+            :type="opt.tierGroup ? 'radio' : 'checkbox'"
+            :checked="opt.roundsCompleted[activeRound - 1]"
+            class="sr-only"
+            @click.prevent="handleOptionClick(opt)"
+          >
+          <span
+            class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border transition-colors"
+            :class="[
+              opt.tierGroup ? 'rounded-full' : 'rounded-sm',
+              opt.roundsCompleted[activeRound - 1] ? 'border-wh-gold bg-wh-gold' : 'border-wh-mute'
+            ]"
+          >
+            <span v-if="!opt.tierGroup && opt.roundsCompleted[activeRound - 1]" class="text-[10px] leading-none text-wh-bg">
+              ✓
+            </span>
+          </span>
           {{ opt.label }}
         </span>
         <span class="shrink-0 text-wh-gold">{{ displayPoints(opt) }}</span>
@@ -146,10 +167,31 @@ function handleOptionClick(opt: PrimaryMissionOption) {
         <label
           v-for="(opt, oi) in roundOptions"
           :key="oi"
-          class="flex items-start justify-between gap-2 rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1.5 text-xs text-wh-ink"
+          class="flex cursor-pointer items-start justify-between gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors"
+          :class="
+            opt.roundsCompleted[activeRound - 1]
+              ? 'border-wh-gold bg-wh-gold/10 text-wh-ink'
+              : 'border-wh-border bg-wh-surface-alt text-wh-ink hover:border-wh-gold/50'
+          "
         >
           <span class="flex items-start gap-2">
-            <input :type="opt.tierGroup ? 'radio' : 'checkbox'" :checked="opt.roundsCompleted[activeRound - 1]" class="mt-0.5 accent-wh-accent" @click.prevent="handleOptionClick(opt)">
+            <input
+              :type="opt.tierGroup ? 'radio' : 'checkbox'"
+              :checked="opt.roundsCompleted[activeRound - 1]"
+              class="sr-only"
+              @click.prevent="handleOptionClick(opt)"
+            >
+            <span
+              class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border transition-colors"
+              :class="[
+                opt.tierGroup ? 'rounded-full' : 'rounded-sm',
+                opt.roundsCompleted[activeRound - 1] ? 'border-wh-gold bg-wh-gold' : 'border-wh-mute'
+              ]"
+            >
+              <span v-if="!opt.tierGroup && opt.roundsCompleted[activeRound - 1]" class="text-[10px] leading-none text-wh-bg">
+                ✓
+              </span>
+            </span>
             {{ opt.label }}
           </span>
           <span class="shrink-0 text-wh-gold">{{ displayPoints(opt) }}</span>

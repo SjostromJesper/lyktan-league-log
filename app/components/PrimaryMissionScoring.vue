@@ -17,6 +17,7 @@ const props = defineProps<{
   description: string
   options: PrimaryMissionOption[]
   maxPointsPerRound: number
+  order?: number
 }>()
 
 const activeRound = ref(1)
@@ -92,6 +93,7 @@ function toggleFlat(opt: PrimaryMissionOption) {
   <button
     type="button"
     class="block w-full rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-left text-sm text-wh-ink sm:hidden"
+    :class="order === 2 ? 'order-2' : 'order-1'"
     @click="showModal = true"
   >
     <p class="text-xs text-wh-mute">{{ label }}</p>
@@ -102,7 +104,10 @@ function toggleFlat(opt: PrimaryMissionOption) {
   </button>
 
   <!-- sm and up: inline round tabs + checklist, name opens a description-only modal. -->
-  <div class="hidden rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-sm text-wh-ink sm:block">
+  <div
+    class="hidden rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-sm text-wh-ink sm:block"
+    :class="order === 2 ? 'order-2' : 'order-1'"
+  >
     <p class="text-xs text-wh-mute">{{ label }}</p>
     <button type="button" class="mt-1 font-semibold text-wh-gold hover:underline" @click="showDescription = true">
       {{ name }}

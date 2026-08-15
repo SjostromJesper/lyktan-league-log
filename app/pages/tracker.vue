@@ -5,7 +5,6 @@ import type { TrackerMatch } from '~/types'
 import { primaryMissionTotal } from '~/utils/primaryScoring'
 
 const { myActiveMatch, reportMatch } = useLeague()
-const { name: profileName } = useProfiles()
 const currentUserId = useCurrentUserId()
 const router = useRouter()
 const {
@@ -462,6 +461,7 @@ function buildPrimaryOptions(name: string | null): PrimaryMissionOption[] {
 const myDisposition = ref<Disposition | ''>('')
 const opponentDisposition = ref<Disposition | ''>('')
 const dispositionsLocked = ref(false)
+const swapSides = ref(false)
 
 const myMissionName = computed(() => {
   if (!myDisposition.value || !opponentDisposition.value) return null
@@ -547,15 +547,6 @@ const myTotal = computed(() => myPrimaryTotal.value + mySecondaryTotal.value)
 const opponentTotal = computed(() => opponentPrimaryTotal.value + opponentSecondaryTotal.value)
 
 const hasReportableMatch = computed(() => !!myActiveMatch.value && myActiveMatch.value.status === 'pending')
-
-const opponentId = computed(() => {
-  if (!myActiveMatch.value || !currentUserId.value) return null
-  return myActiveMatch.value.player1_id === currentUserId.value
-    ? myActiveMatch.value.player2_id
-    : myActiveMatch.value.player1_id
-})
-
-const opponentLabel = computed(() => (opponentId.value ? profileName(opponentId.value) : 'the opponent'))
 
 const applyToMatch = ref(hasReportableMatch.value)
 watch(hasReportableMatch, val => {
@@ -775,22 +766,33 @@ onMounted(async () => {
 
     <template v-else>
     <p class="text-sm text-wh-mute">
-      <template v-if="hasReportableMatch">Vs {{ opponentLabel }}</template>
+      <template v-if="hasReportableMatch">Vs Opponent</template>
       <template v-else>Standalone tracking — not linked to a league match right now.</template>
     </p>
 
     <section class="rounded-lg border border-wh-border bg-wh-surface p-4">
-      <h2 class="mb-2 text-lg font-medium text-wh-ink">Score</h2>
+      <div class="mb-2 flex items-center justify-between gap-2">
+        <h2 class="text-lg font-medium text-wh-ink">Score</h2>
+        <button
+          type="button"
+          title="Swap sides"
+          class="shrink-0 rounded-md border border-wh-border px-2 py-1 text-xs text-wh-mute hover:border-wh-gold hover:text-wh-ink"
+          @click="swapSides = !swapSides"
+        >
+          ⇄ Swap sides
+        </button>
+      </div>
       <div class="grid grid-cols-2 gap-3">
         <div
           class="rounded-md border p-3"
-          :class="
+          :class="[
+            swapSides ? 'order-2' : 'order-1',
             myTotal > opponentTotal
               ? 'border-emerald-500/50 bg-emerald-500/10'
               : myTotal < opponentTotal
                 ? 'border-wh-accent/50 bg-wh-accent/10'
                 : 'border-wh-border bg-wh-surface-alt'
-          "
+          ]"
         >
           <p class="text-xs text-wh-mute">You</p>
           <p class="text-xl font-semibold text-wh-ink">{{ myTotal }}</p>
@@ -798,15 +800,16 @@ onMounted(async () => {
         </div>
         <div
           class="rounded-md border p-3"
-          :class="
+          :class="[
+            swapSides ? 'order-1' : 'order-2',
             opponentTotal > myTotal
               ? 'border-emerald-500/50 bg-emerald-500/10'
               : opponentTotal < myTotal
                 ? 'border-wh-accent/50 bg-wh-accent/10'
                 : 'border-wh-border bg-wh-surface-alt'
-          "
+          ]"
         >
-          <p class="truncate text-xs text-wh-mute">{{ opponentLabel }}</p>
+          <p class="truncate text-xs text-wh-mute">Opponent</p>
           <p class="text-xl font-semibold text-wh-ink">{{ opponentTotal }}</p>
           <p class="text-xs text-wh-mute">{{ opponentPrimaryTotal }} primary + {{ opponentSecondaryTotal }} secondary</p>
         </div>
@@ -830,7 +833,7 @@ onMounted(async () => {
           From GDM 2026 (a fan-made 11th edition reference) — flag it if anything looks off.
         </p>
         <div class="grid gap-3 sm:grid-cols-2">
-          <div>
+          <div :class="swapSides ? 'order-2' : 'order-1'">
             <label class="mb-1 block text-sm text-wh-mute">Your disposition</label>
             <select
               v-model="myDisposition"
@@ -841,7 +844,7 @@ onMounted(async () => {
               <option v-for="d in DISPOSITIONS" :key="d" :value="d">{{ d }}</option>
             </select>
           </div>
-          <div>
+          <div :class="swapSides ? 'order-1' : 'order-2'">
             <label class="mb-1 block text-sm text-wh-mute">Opponent's disposition</label>
             <select
               v-model="opponentDisposition"
@@ -855,6 +858,7 @@ onMounted(async () => {
         </div>
         <div v-if="myMissionName && opponentMissionName" class="mt-4 grid gap-3 sm:grid-cols-2">
           <PrimaryMissionScoring
+            :order="swapSides ? 2 : 1"
             label="Your primary mission"
             :name="myMissionName"
             :description="PRIMARY_MISSION_DESCRIPTIONS[myMissionName] ?? ''"
@@ -862,7 +866,8 @@ onMounted(async () => {
             :max-points-per-round="MAX_POINTS_PER_ROUND"
           />
           <PrimaryMissionScoring
-            :label="`${opponentLabel}'s primary mission`"
+            :order="swapSides ? 1 : 2"
+            label="Opponent's primary mission"
             :name="opponentMissionName"
             :description="PRIMARY_MISSION_DESCRIPTIONS[opponentMissionName] ?? ''"
             :options="opponentPrimaryOptions"
@@ -879,6 +884,7 @@ onMounted(async () => {
         </p>
         <div class="grid gap-4 sm:grid-cols-2">
           <SecondaryTracker
+            :class="swapSides ? 'order-2' : 'order-1'"
             label="Your secondaries"
             :entries="mySecondaries"
             :available="availableSecondariesFor(mySecondaries)"
@@ -888,7 +894,8 @@ onMounted(async () => {
             @remove="i => removeSecondary(mySecondaries, i)"
           />
           <SecondaryTracker
-            :label="`${opponentLabel}'s secondaries`"
+            :class="swapSides ? 'order-1' : 'order-2'"
+            label="Opponent's secondaries"
             :entries="opponentSecondaries"
             :available="availableSecondariesFor(opponentSecondaries)"
             :max-points-per-round="MAX_POINTS_PER_ROUND"
@@ -903,7 +910,7 @@ onMounted(async () => {
         <h2 class="mb-1 text-lg font-medium text-wh-ink">Report to league</h2>
         <label v-if="hasReportableMatch" class="mt-2 flex items-center gap-2 text-sm text-wh-ink">
           <input v-model="applyToMatch" type="checkbox" class="accent-wh-accent">
-          Apply the final score to my ongoing match against {{ opponentLabel }}
+          Apply the final score to my ongoing match against Opponent
         </label>
         <p v-else class="mt-2 text-sm text-wh-mute">
           No ongoing league match to report to right now — this tracking session isn't saved anywhere.

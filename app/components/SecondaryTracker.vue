@@ -1,10 +1,15 @@
 <script setup lang="ts">
+export interface SecondaryOption {
+  label: string
+  points: number | null
+  roundsCompleted: boolean[]
+}
+
 export interface SecondaryEntry {
   name: string
   discarded: boolean
-  pointsPerRound: number | null
-  roundsCompleted: boolean[]
   notes: string
+  options: SecondaryOption[]
 }
 
 const props = defineProps<{
@@ -17,8 +22,7 @@ const emit = defineEmits<{ add: [name: string]; remove: [index: number] }>()
 
 function entryPoints(entry: SecondaryEntry) {
   if (entry.discarded) return 0
-  const completedCount = entry.roundsCompleted.filter(Boolean).length
-  return completedCount * (entry.pointsPerRound ?? 0)
+  return entry.options.reduce((sum, o) => sum + o.roundsCompleted.filter(Boolean).length * (o.points ?? 0), 0)
 }
 
 function handleAdd(event: Event) {

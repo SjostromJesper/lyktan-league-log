@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import type { SecondaryEntry } from './SecondaryTracker.vue'
 
-defineProps<{ entry: SecondaryEntry; maxPointsPerRound: number }>()
+const props = defineProps<{ entry: SecondaryEntry; maxPointsPerRound: number }>()
 const emit = defineEmits<{ close: []; remove: [] }>()
+
+function addOption() {
+  props.entry.options.push({ label: '', points: null, roundsCompleted: Array.from({ length: 5 }, () => false) })
+}
+
+function removeOption(index: number) {
+  props.entry.options.splice(index, 1)
+}
 </script>
 
 <template>
@@ -29,34 +37,59 @@ const emit = defineEmits<{ close: []; remove: [] }>()
           />
         </div>
 
-        <div class="mt-4 w-32">
-          <label class="mb-1 block text-sm text-wh-mute">Poäng per runda</label>
-          <input
-            v-model.number="entry.pointsPerRound"
-            type="number"
-            min="0"
-            :max="maxPointsPerRound"
-            class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink outline-none focus:border-wh-accent"
-          >
-        </div>
-
-        <div class="mt-4">
-          <p class="mb-1 text-sm text-wh-mute">Klar i runda</p>
-          <div class="flex gap-2">
-            <button
-              v-for="(done, ri) in entry.roundsCompleted"
-              :key="ri"
-              type="button"
-              :title="`Runda ${ri + 1}`"
-              :class="[
-                'flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-colors',
-                done ? 'bg-wh-gold text-wh-bg' : 'border border-wh-border text-wh-mute hover:border-wh-gold'
-              ]"
-              @click="entry.roundsCompleted[ri] = !entry.roundsCompleted[ri]"
-            >
-              {{ ri + 1 }}
-            </button>
+        <div class="mt-4 space-y-3">
+          <p class="text-sm text-wh-mute">Alternativ</p>
+          <div v-for="(opt, oi) in entry.options" :key="oi" class="rounded-md border border-wh-border p-3">
+            <div class="flex items-center gap-2">
+              <input
+                v-model="opt.label"
+                type="text"
+                placeholder="T.ex. 1 mål cleansat"
+                class="flex-1 rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-sm text-wh-ink outline-none focus:border-wh-accent"
+              >
+              <button type="button" class="shrink-0 text-wh-mute hover:text-wh-accent" @click="removeOption(oi)">
+                ✕
+              </button>
+            </div>
+            <div class="mt-2 flex flex-wrap items-end gap-3">
+              <div class="w-20">
+                <label class="mb-1 block text-xs text-wh-mute">Poäng</label>
+                <input
+                  v-model.number="opt.points"
+                  type="number"
+                  min="0"
+                  :max="maxPointsPerRound"
+                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-sm text-wh-ink outline-none focus:border-wh-accent"
+                >
+              </div>
+              <div>
+                <label class="mb-1 block text-xs text-wh-mute">Klar i runda</label>
+                <div class="flex gap-1">
+                  <button
+                    v-for="(done, ri) in opt.roundsCompleted"
+                    :key="ri"
+                    type="button"
+                    :title="`Runda ${ri + 1}`"
+                    :class="[
+                      'flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors',
+                      done ? 'bg-wh-gold text-wh-bg' : 'border border-wh-border text-wh-mute hover:border-wh-gold'
+                    ]"
+                    @click="opt.roundsCompleted[ri] = !opt.roundsCompleted[ri]"
+                  >
+                    {{ ri + 1 }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
+          <p v-if="!entry.options.length" class="text-xs text-wh-mute">Inga alternativ tillagda än.</p>
+          <button
+            type="button"
+            class="rounded-md border border-dashed border-wh-border px-3 py-1.5 text-xs text-wh-ink hover:border-wh-accent"
+            @click="addOption"
+          >
+            + Lägg till alternativ
+          </button>
         </div>
       </template>
 

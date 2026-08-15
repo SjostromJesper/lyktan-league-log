@@ -71,6 +71,63 @@ const SECONDARY_MISSIONS = [
   "Secure No Man's Land"
 ]
 
+// Scoring conditions summarized in our own words from the GDM 2026 defender cards (11th ed.),
+// not transcribed rule text — labels and point values only, all editable in the app.
+const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number }[]> = {
+  'A Grievous Blow': [
+    { label: 'Varje fiendeenhet (styrka 13+) dödad denna runda', points: 4 },
+    { label: '1+ fiendeenhet (styrka 13+) dödad denna runda', points: 5 }
+  ],
+  'A Tempting Target': [{ label: 'Kontrollerar mitt lockbetesmål', points: 5 }],
+  Assassination: [
+    { label: 'Varje fiende-CHARACTER dödad denna runda', points: 3 },
+    { label: 'Bonus: den dödade hade W4+', points: 1 },
+    { label: '1+ fiende-CHARACTER dödad denna runda', points: 5 },
+    { label: 'Alla fiende-CHARACTERS dödade under matchen', points: 5 }
+  ],
+  Beacon: [
+    { label: 'Beacon-enhet utanför min deployment zone', points: 3 },
+    { label: 'Beacon-enhet utanför mitt territorium', points: 5 }
+  ],
+  'Behind Enemy Lines': [{ label: 'Varje enhet helt i motståndarens deployment zone (max 5p)', points: 3 }],
+  'Bring it Down': [
+    { label: 'Varje fiendemodell (W10+) dödad denna runda', points: 4 },
+    { label: '1+ fiendemodell (W10+) dödad denna runda', points: 5 }
+  ],
+  'Burden of Trust': [{ label: 'Varje guardat mål (max 5p)', points: 2 }],
+  'Centre Ground': [
+    { label: 'Enhet inom 3" från mitten, ingen fiende inom 3"', points: 3 },
+    { label: 'Enhet inom 3" från mitten, ingen fiende inom 6"', points: 5 }
+  ],
+  Cleanse: [
+    { label: 'Ett mål cleansat denna runda', points: 2 },
+    { label: 'Två eller fler mål cleansade denna runda', points: 5 }
+  ],
+  'Defend Stronghold': [
+    { label: 'Kontrollerar hemmamål', points: 3 },
+    { label: 'Bonus: ingen fiende i min deployment zone', points: 2 }
+  ],
+  'Display of Might': [
+    { label: 'Fler enheter än fienden i No Man\'s Land (min tur)', points: 2 },
+    { label: 'Fler enheter än fienden i No Man\'s Land (motst. tur)', points: 5 }
+  ],
+  'Engage on All Fronts': [
+    { label: 'Närvaro i tre bordskvartar', points: 2 },
+    { label: 'Närvaro i fyra bordskvartar', points: 4 },
+    { label: 'Närvaro i tre bordskvartar (tactical)', points: 3 },
+    { label: 'Närvaro i fyra bordskvartar (tactical)', points: 5 }
+  ],
+  'Forward Position': [{ label: 'Kontrollerar motståndarens hemmamål och/eller expansionmål', points: 5 }],
+  'No Prisoners': [{ label: 'Varje fiendeenhet dödad denna runda (max 5p)', points: 2 }],
+  Outflank: [
+    { label: '1+ enhet inom 6" av kant, utanför territorium', points: 3 },
+    { label: '2+ enheter inom 6" av motsatta kanter, ej i territorium', points: 5 }
+  ],
+  'Overwhelming Force': [{ label: 'Varje fiendeenhet vid mål dödad denna runda (max 5p)', points: 3 }],
+  Plunder: [{ label: 'Terrängområde plundrat denna runda', points: 5 }],
+  "Secure No Man's Land": [{ label: 'Kontrollerar 2+ mål i No Man\'s Land', points: 5 }]
+}
+
 const myDisposition = ref<Disposition | ''>('')
 const opponentDisposition = ref<Disposition | ''>('')
 
@@ -93,12 +150,16 @@ function availableSecondariesFor(list: SecondaryEntry[]) {
 }
 
 function addSecondary(list: SecondaryEntry[], name: string) {
+  const defaults = DEFAULT_SECONDARY_OPTIONS[name] ?? []
   list.push({
     name,
     discarded: false,
-    pointsPerRound: null,
-    roundsCompleted: Array.from({ length: 5 }, () => false),
-    notes: ''
+    notes: '',
+    options: defaults.map(d => ({
+      label: d.label,
+      points: d.points,
+      roundsCompleted: Array.from({ length: 5 }, () => false)
+    }))
   })
 }
 
@@ -112,8 +173,13 @@ function secondaryPoints(list: SecondaryEntry[]) {
   let total = 0
   for (let round = 0; round < 5; round++) {
     const roundTotal = list
-      .filter(s => !s.discarded && s.roundsCompleted[round])
-      .reduce((sum, s) => sum + (s.pointsPerRound ?? 0), 0)
+      .filter(s => !s.discarded)
+      .reduce(
+        (sum, s) =>
+          sum +
+          s.options.filter(o => o.roundsCompleted[round]).reduce((a, o) => a + (o.points ?? 0), 0),
+        0
+      )
     total += Math.min(MAX_POINTS_PER_ROUND, roundTotal)
   }
   return total

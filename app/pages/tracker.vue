@@ -219,7 +219,12 @@ const PRIMARY_MISSION_SCORING: Record<string, PrimaryScoringOption[]> = {
   'Battlefield Dominance': [
     { label: 'Control more objectives than your opponent', points: 2, timing: T_TURN, rounds: [1, 2] },
     ...objectiveTiers(3, R_2_5, T_CMD),
-    { label: 'Bonus: you also control your home objective', points: 2, timing: T_CMD, rounds: R_2_5 }
+    ...countTiers(
+      5,
+      R_2_5,
+      T_CMD,
+      (n, plus) => `Control ${n}${plus} objective${n > 1 ? 's' : ''} (excl. home) AND control your home objective`
+    )
   ],
   'Immovable Object': [
     { label: 'Control one or more central objectives', points: 3, timing: T_TURN, rounds: R_ANY },

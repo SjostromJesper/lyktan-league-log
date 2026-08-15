@@ -60,7 +60,7 @@ async function handleSubmit() {
 
       <p v-if="photo?.status === 'approved'" class="mt-1 text-sm text-wh-gold">✓ Godkänd</p>
       <p v-else-if="photo?.status === 'submitted'" class="mt-1 text-sm text-wh-mute">
-        Skickad in — väntar på att en admin godkänner den.
+        Skickad in — väntar på att en admin godkänner den. Du kan fortfarande byta bilder om du vill.
       </p>
       <p v-else class="mt-1 text-sm text-wh-mute">Ladda upp en bild omålad och en målad, klicka sedan skicka in.</p>
 
@@ -71,7 +71,7 @@ async function handleSubmit() {
             <img v-if="unpaintedUrl" :src="unpaintedUrl" alt="Omålad unit" class="h-full w-full object-cover">
           </div>
           <label
-            v-if="photo?.status !== 'submitted' && photo?.status !== 'approved'"
+            v-if="photo?.status !== 'approved'"
             class="mt-2 block cursor-pointer rounded-md border border-dashed border-wh-border px-2 py-1.5 text-center text-xs text-wh-mute hover:border-wh-accent"
           >
             {{ uploadingUnpainted ? 'Laddar upp...' : unpaintedUrl ? 'Byt bild' : '+ Ladda upp' }}
@@ -84,7 +84,7 @@ async function handleSubmit() {
             <img v-if="paintedUrl" :src="paintedUrl" alt="Målad unit" class="h-full w-full object-cover">
           </div>
           <label
-            v-if="photo?.status !== 'submitted' && photo?.status !== 'approved'"
+            v-if="photo?.status !== 'approved'"
             class="mt-2 block cursor-pointer rounded-md border border-dashed border-wh-border px-2 py-1.5 text-center text-xs text-wh-mute hover:border-wh-accent"
           >
             {{ uploadingPainted ? 'Laddar upp...' : paintedUrl ? 'Byt bild' : '+ Ladda upp' }}
@@ -96,7 +96,7 @@ async function handleSubmit() {
       <p v-if="error" class="mt-3 text-sm text-wh-accent">{{ error }}</p>
 
       <button
-        v-if="photo?.status !== 'submitted' && photo?.status !== 'approved'"
+        v-if="photo?.status !== 'approved'"
         type="button"
         :disabled="!canSubmit || submitting"
         class="mt-4 w-full rounded-md bg-wh-accent px-4 py-2 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover disabled:opacity-50"

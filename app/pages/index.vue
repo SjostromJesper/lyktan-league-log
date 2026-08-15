@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { PAINTED_UNIT_KEYS, type PaintedUnitKey } from '~/composables/useLeague'
+
 const { profile } = useProfile()
 const { profiles, refresh: refreshProfiles, name: profileName, byId } = useProfiles()
 const {
@@ -11,9 +13,11 @@ const {
   submitSignup,
   reportMatch,
   confirmMatch,
-  myPhaseMatchCount
+  myPhaseMatchCount,
+  paintingPointsFor
 } = useLeague()
 const currentUserId = useCurrentUserId()
+const { refresh: refreshPaintedUnitPhotos, photoFor } = usePaintedUnitPhotos()
 
 const armyListDraft = ref('')
 const showConfirmModal = ref(false)
@@ -33,6 +37,29 @@ const confirmSubmitting = ref(false)
 onMounted(async () => {
   await Promise.all([refresh(), refreshProfiles()])
 })
+
+watch(
+  () => selectedLeague.value?.id,
+  leagueId => {
+    if (leagueId) refreshPaintedUnitPhotos(leagueId)
+  },
+  { immediate: true }
+)
+
+const openUnitModal = ref<PaintedUnitKey | null>(null)
+
+function myPhoto(unit: PaintedUnitKey) {
+  if (!selectedLeague.value || !currentUserId.value) return null
+  return photoFor(selectedLeague.value.id, currentUserId.value, unit)
+}
+
+function unitStatusClass(unit: PaintedUnitKey) {
+  const photo = myPhoto(unit)
+  if (photo?.status === 'approved') return 'bg-wh-gold text-wh-bg'
+  if (photo?.status === 'submitted') return 'border-2 border-wh-gold text-wh-gold animate-pulse'
+  if (photo?.unpainted_path || photo?.painted_path) return 'border border-wh-gold/50 text-wh-mute'
+  return 'border border-wh-border text-wh-mute hover:border-wh-gold'
+}
 
 const opponentId = computed(() => {
   if (!myActiveMatch.value || !currentUserId.value) return null
@@ -163,6 +190,40 @@ async function respondToReport(action: 'confirm' | 'dispute') {
           {{ myPhaseMatchCount }} av {{ selectedLeague.matches_per_phase }} matcher
         </p>
       </div>
+
+      <!-- Painted units -->
+      <div class="rounded-lg border border-wh-border bg-wh-surface p-6">
+        <h2 class="text-lg font-medium text-wh-ink">Målade units</h2>
+        <p class="mt-1 text-sm text-wh-mute">
+          Ladda upp en bild omålad och en målad för varje unit. En admin granskar och godkänner innan du får dina
+          poäng.
+        </p>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            v-for="(unit, index) in PAINTED_UNIT_KEYS"
+            :key="unit"
+            type="button"
+            :title="`Unit ${index + 1}`"
+            :class="[
+              'flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-colors',
+              unitStatusClass(unit)
+            ]"
+            @click="openUnitModal = unit"
+          >
+            {{ index + 1 }}
+          </button>
+          <span class="ml-1 text-sm text-wh-mute">{{ currentUserId ? paintingPointsFor(currentUserId) : 0 }}p</span>
+        </div>
+      </div>
+
+      <PaintedUnitUploadModal
+        v-if="openUnitModal && selectedLeague"
+        :league-id="selectedLeague.id"
+        :unit-key="openUnitModal"
+        :unit-number="PAINTED_UNIT_KEYS.indexOf(openUnitModal) + 1"
+        :photo="myPhoto(openUnitModal)"
+        @close="openUnitModal = null"
+      />
 
       <!-- Army lists for the current match -->
       <div v-if="myActiveMatch" class="rounded-lg border border-wh-border bg-wh-surface p-6">

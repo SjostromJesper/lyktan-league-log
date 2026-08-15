@@ -34,10 +34,19 @@ const {
   setPaintedUnit,
   paintedUnits
 } = useLeague()
+const { refresh: refreshPaintedUnitPhotos, photoFor } = usePaintedUnitPhotos()
 
 onMounted(async () => {
   await Promise.all([refresh(), refreshProfiles()])
 })
+
+watch(
+  () => selectedLeague.value?.id,
+  leagueId => {
+    if (leagueId) refreshPaintedUnitPhotos(leagueId)
+  },
+  { immediate: true }
+)
 
 function leagueName(leagueId: string) {
   return allLeagues.value.find(l => l.id === leagueId)?.name ?? 'Okänd liga'
@@ -276,9 +285,24 @@ async function handleVoidDispute(matchId: string) {
 }
 
 const paintError = ref('')
+const reviewingUnit = ref<{ userId: string; unit: PaintedUnitKey } | null>(null)
 
 function isPainted(userId: string, unit: PaintedUnitKey) {
   return paintedUnits.value.find(p => p.user_id === userId)?.[unit] ?? false
+}
+
+function pendingPhoto(userId: string, unit: PaintedUnitKey) {
+  if (!selectedLeague.value) return null
+  const photo = photoFor(selectedLeague.value.id, userId, unit)
+  return photo?.status === 'submitted' ? photo : null
+}
+
+function handleUnitPillClick(userId: string, unit: PaintedUnitKey) {
+  if (pendingPhoto(userId, unit)) {
+    reviewingUnit.value = { userId, unit }
+  } else {
+    handleTogglePainted(userId, unit)
+  }
 }
 
 async function handleTogglePainted(userId: string, unit: PaintedUnitKey) {
@@ -483,14 +507,16 @@ async function handleTogglePainted(userId: string, unit: PaintedUnitKey) {
                 v-for="(unit, index) in PAINTED_UNIT_KEYS"
                 :key="unit"
                 type="button"
-                :title="`Unit ${index + 1}`"
+                :title="pendingPhoto(m.user_id, unit) ? `Unit ${index + 1} — väntar på granskning` : `Unit ${index + 1}`"
                 :class="[
                   'flex h-6 w-6 items-center justify-center rounded text-xs font-medium transition-colors',
-                  isPainted(m.user_id, unit)
-                    ? 'bg-wh-gold text-wh-bg'
-                    : 'border border-wh-border text-wh-mute hover:border-wh-gold'
+                  pendingPhoto(m.user_id, unit)
+                    ? 'border-2 border-wh-gold text-wh-gold animate-pulse'
+                    : isPainted(m.user_id, unit)
+                      ? 'bg-wh-gold text-wh-bg'
+                      : 'border border-wh-border text-wh-mute hover:border-wh-gold'
                 ]"
-                @click="handleTogglePainted(m.user_id, unit)"
+                @click="handleUnitPillClick(m.user_id, unit)"
               >
                 {{ index + 1 }}
               </button>
@@ -617,6 +643,16 @@ async function handleTogglePainted(userId: string, unit: PaintedUnitKey) {
         <li v-if="!profiles.length" class="text-sm text-wh-mute">Inga konton skapade än.</li>
       </ul>
     </CollapsibleSection>
+
+    <PaintedUnitReviewModal
+      v-if="reviewingUnit && selectedLeague && pendingPhoto(reviewingUnit.userId, reviewingUnit.unit)"
+      :league-id="selectedLeague.id"
+      :player-name="profileName(reviewingUnit.userId)"
+      :unit-key="reviewingUnit.unit"
+      :unit-number="PAINTED_UNIT_KEYS.indexOf(reviewingUnit.unit) + 1"
+      :photo="pendingPhoto(reviewingUnit.userId, reviewingUnit.unit)!"
+      @close="reviewingUnit = null; refresh()"
+    />
 
     <LeagueFormModal
       v-if="showLeagueModal"

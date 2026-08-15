@@ -71,6 +71,20 @@ export interface Match {
   confirmed_at: string | null
 }
 
+export type PaintedUnitKey = 'unit1' | 'unit2' | 'unit3' | 'unit4' | 'unit5'
+export type PaintedUnitPhotoStatus = 'draft' | 'submitted' | 'approved'
+
+export interface PaintedUnitPhoto {
+  league_id: string
+  user_id: string
+  unit_key: PaintedUnitKey
+  unpainted_path: string | null
+  painted_path: string | null
+  status: PaintedUnitPhotoStatus
+  submitted_at: string | null
+  approved_at: string | null
+}
+
 export interface TrackerMatch {
   id: string
   user_id: string
@@ -96,6 +110,7 @@ export interface Database {
       signups: { Row: Signup; Insert: Partial<Signup>; Update: Partial<Signup> }
       matches: { Row: Match; Insert: Partial<Match>; Update: Partial<Match> }
       painted_units: { Row: PaintedUnits; Insert: Partial<PaintedUnits>; Update: Partial<PaintedUnits> }
+      painted_unit_photos: { Row: PaintedUnitPhoto; Insert: Partial<PaintedUnitPhoto>; Update: Partial<PaintedUnitPhoto> }
       tracker_matches: { Row: TrackerMatch; Insert: Partial<TrackerMatch>; Update: Partial<TrackerMatch> }
     }
   }

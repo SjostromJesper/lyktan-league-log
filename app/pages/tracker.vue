@@ -71,86 +71,90 @@ const SECONDARY_MISSIONS = [
   "Secure No Man's Land"
 ]
 
-const END_OF_YOUR_TURN = 'Slutet av din tur'
-const END_OF_OPPONENT_TURN = 'Slutet av motståndarens tur'
-const END_OF_EITHER_TURN = 'Slutet av endera spelares tur'
-const END_OF_OPPONENT_TURN_OR_R5 = 'Slutet av motståndarens tur / slutet av runda 5'
+const END_OF_YOUR_TURN = 'End of your turn'
+const END_OF_OPPONENT_TURN = "End of opponent's turn"
+const END_OF_EITHER_TURN = "End of either player's turn"
+const END_OF_OPPONENT_TURN_OR_R5 = "End of opponent's turn / end of round 5"
 
 // Scoring conditions summarized in our own words from the GDM 2026 defender cards (11th ed.),
-// not transcribed rule text — labels, point values, and timing, all editable in the app.
+// not transcribed rule text — labels, point values, and timing, fixed per secondary.
 const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number; timing: string }[]> = {
   'A Grievous Blow': [
-    { label: '1+ fiendeenhet (styrka 13+) dödad denna runda', points: 5, timing: END_OF_EITHER_TURN }
+    { label: '1+ enemy unit (starting strength 13+) destroyed this turn', points: 5, timing: END_OF_EITHER_TURN }
   ],
-  'A Tempting Target': [{ label: 'Kontrollerar mitt lockbetesmål', points: 5, timing: END_OF_YOUR_TURN }],
+  'A Tempting Target': [{ label: 'Control my tempting target objective', points: 5, timing: END_OF_YOUR_TURN }],
   Assassination: [
-    { label: '1+ fiende-CHARACTER dödad denna runda', points: 5, timing: END_OF_EITHER_TURN },
-    { label: 'Alla fiende-CHARACTERS dödade under matchen', points: 5, timing: END_OF_EITHER_TURN }
+    { label: '1+ enemy CHARACTER destroyed this turn', points: 5, timing: END_OF_EITHER_TURN },
+    { label: 'All enemy CHARACTERS destroyed during the battle', points: 5, timing: END_OF_EITHER_TURN }
   ],
   Beacon: [
-    { label: 'Beacon-enhet utanför min deployment zone', points: 3, timing: END_OF_OPPONENT_TURN_OR_R5 },
-    { label: 'Beacon-enhet utanför mitt territorium', points: 5, timing: END_OF_OPPONENT_TURN_OR_R5 }
+    { label: "Beacon unit on the battlefield, outside my deployment zone", points: 3, timing: END_OF_OPPONENT_TURN_OR_R5 },
+    { label: 'Beacon unit on the battlefield, outside my territory', points: 5, timing: END_OF_OPPONENT_TURN_OR_R5 }
   ],
   'Behind Enemy Lines': [
-    { label: 'Varje enhet helt i motståndarens deployment zone (max 5p)', points: 3, timing: END_OF_YOUR_TURN }
+    { label: "Each unit wholly within opponent's deployment zone (max 5p)", points: 3, timing: END_OF_YOUR_TURN }
   ],
-  'Bring it Down': [{ label: '1+ fiendemodell (W10+) dödad denna runda', points: 5, timing: END_OF_EITHER_TURN }],
-  'Burden of Trust': [{ label: 'Varje guardat mål (max 5p)', points: 2, timing: END_OF_OPPONENT_TURN_OR_R5 }],
+  'Bring it Down': [{ label: '1+ enemy model (W10+) destroyed this turn', points: 5, timing: END_OF_EITHER_TURN }],
+  'Burden of Trust': [{ label: 'Each objective guarded (max 5p)', points: 2, timing: END_OF_OPPONENT_TURN_OR_R5 }],
   'Centre Ground': [
-    { label: 'Enhet inom 3" från mitten, ingen fiende inom 3"', points: 3, timing: END_OF_YOUR_TURN },
-    { label: 'Enhet inom 3" från mitten, ingen fiende inom 6"', points: 5, timing: END_OF_YOUR_TURN }
+    { label: 'Unit within 3" of centre, no enemy within 3"', points: 3, timing: END_OF_YOUR_TURN },
+    { label: 'Unit within 3" of centre, no enemy within 6"', points: 5, timing: END_OF_YOUR_TURN }
   ],
   Cleanse: [
-    { label: 'Ett mål cleansat denna runda', points: 2, timing: END_OF_YOUR_TURN },
-    { label: 'Två eller fler mål cleansade denna runda', points: 5, timing: END_OF_YOUR_TURN }
+    { label: 'One objective cleansed this turn', points: 2, timing: END_OF_YOUR_TURN },
+    { label: 'Two or more objectives cleansed this turn', points: 5, timing: END_OF_YOUR_TURN }
   ],
   'Defend Stronghold': [
-    { label: 'Kontrollerar hemmamål', points: 3, timing: END_OF_OPPONENT_TURN_OR_R5 },
-    { label: 'Bonus: ingen fiende i min deployment zone', points: 2, timing: END_OF_OPPONENT_TURN_OR_R5 }
+    { label: 'Control home objective', points: 3, timing: END_OF_OPPONENT_TURN_OR_R5 },
+    { label: 'Bonus: no enemy in my deployment zone', points: 2, timing: END_OF_OPPONENT_TURN_OR_R5 }
   ],
   'Display of Might': [
-    { label: 'Fler enheter än fienden i No Man\'s Land (min tur)', points: 2, timing: END_OF_YOUR_TURN },
-    { label: 'Fler enheter än fienden i No Man\'s Land (motst. tur)', points: 5, timing: END_OF_OPPONENT_TURN }
+    { label: "More units than the enemy in No Man's Land (my turn)", points: 2, timing: END_OF_YOUR_TURN },
+    { label: "More units than the enemy in No Man's Land (opponent's turn)", points: 5, timing: END_OF_OPPONENT_TURN }
   ],
   'Engage on All Fronts': [
-    { label: 'Närvaro i tre bordskvartar', points: 3, timing: END_OF_YOUR_TURN },
-    { label: 'Närvaro i fyra bordskvartar', points: 5, timing: END_OF_YOUR_TURN }
+    { label: 'Presence in three table quarters', points: 3, timing: END_OF_YOUR_TURN },
+    { label: 'Presence in four table quarters', points: 5, timing: END_OF_YOUR_TURN }
   ],
   'Forward Position': [
-    { label: 'Kontrollerar motståndarens hemmamål och/eller expansionmål', points: 5, timing: END_OF_YOUR_TURN }
+    { label: "Control opponent's home objective and/or each expansion objective", points: 5, timing: END_OF_YOUR_TURN }
   ],
-  'No Prisoners': [{ label: 'Varje fiendeenhet dödad denna runda (max 5p)', points: 2, timing: END_OF_EITHER_TURN }],
+  'No Prisoners': [{ label: 'Each enemy unit destroyed this turn (max 5p)', points: 2, timing: END_OF_EITHER_TURN }],
   Outflank: [
-    { label: '1+ enhet inom 6" av kant, utanför territorium', points: 3, timing: END_OF_YOUR_TURN },
-    { label: '2+ enheter inom 6" av motsatta kanter, ej i territorium', points: 5, timing: END_OF_YOUR_TURN }
+    { label: '1+ unit within 6" of a battlefield edge, outside my territory', points: 3, timing: END_OF_YOUR_TURN },
+    {
+      label: '2+ units within 6" of opposite edges, at least one outside my territory',
+      points: 5,
+      timing: END_OF_YOUR_TURN
+    }
   ],
   'Overwhelming Force': [
-    { label: 'Varje fiendeenhet vid mål dödad denna runda (max 5p)', points: 3, timing: END_OF_EITHER_TURN }
+    { label: 'Each enemy unit at an objective destroyed this turn (max 5p)', points: 3, timing: END_OF_EITHER_TURN }
   ],
-  Plunder: [{ label: 'Terrängområde plundrat denna runda', points: 5, timing: END_OF_YOUR_TURN }],
-  "Secure No Man's Land": [{ label: 'Kontrollerar 2+ mål i No Man\'s Land', points: 5, timing: END_OF_YOUR_TURN }]
+  Plunder: [{ label: 'Terrain feature plundered this turn', points: 5, timing: END_OF_YOUR_TURN }],
+  "Secure No Man's Land": [{ label: "Control 2+ objectives in No Man's Land", points: 5, timing: END_OF_YOUR_TURN }]
 }
 
 // Short functional summaries in our own words, not card flavour text.
 const SECONDARY_DESCRIPTIONS: Record<string, string> = {
-  'A Grievous Blow': 'Poäng för att döda stora fiendeenheter (startstyrka 13+).',
-  'A Tempting Target': 'Motståndaren väljer ett av dina mål som du måste försvara.',
-  Assassination: 'Poäng för att döda fiende-CHARACTERS.',
-  Beacon: "Håll en vald egen enhet (\"beacon\") utanför din egen zon/territorium.",
-  'Behind Enemy Lines': 'Poäng för egna enheter inne i motståndarens deployment zone.',
-  'Bring it Down': 'Poäng för att döda tåliga fiendemodeller (W10+).',
-  'Burden of Trust': 'Poäng för mål som "guardas" av en av dina enheter.',
-  'Centre Ground': 'Poäng för att hålla mitten av bordet fri från fiender.',
-  Cleanse: 'Poäng för att "cleansa" mål med en enhet i din shooting phase.',
-  'Defend Stronghold': 'Poäng för att hålla ditt hemmamål och din deployment zone fri från fiender.',
-  'Display of Might': 'Poäng för fler egna än fientliga enheter i No Man\'s Land.',
-  'Engage on All Fronts': 'Poäng för närvaro i flera bordskvartar samtidigt.',
-  'Forward Position': 'Poäng för att kontrollera motståndarens mål.',
-  'No Prisoners': 'Poäng för varje fiendeenhet du dödar.',
-  Outflank: 'Poäng för enheter nära bordskanterna, utanför ditt eget territorium.',
-  'Overwhelming Force': 'Poäng för att döda fiender som stod vid ett mål.',
-  Plunder: 'Plundra ett terrängområde med en enhet i din shooting phase.',
-  "Secure No Man's Land": 'Poäng för att kontrollera flera mål i No Man\'s Land.'
+  'A Grievous Blow': 'Points for destroying large enemy units (starting strength 13+).',
+  'A Tempting Target': 'Your opponent picks one of your objectives that you must defend.',
+  Assassination: 'Points for destroying enemy CHARACTERS.',
+  Beacon: 'Keep a chosen unit ("beacon") outside your own deployment zone/territory.',
+  'Behind Enemy Lines': "Points for units inside the opponent's deployment zone.",
+  'Bring it Down': 'Points for destroying tough enemy models (W10+).',
+  'Burden of Trust': 'Points for objectives "guarded" by one of your units.',
+  'Centre Ground': 'Points for holding the centre of the table free of enemies.',
+  Cleanse: 'Points for "cleansing" objectives with a unit in your shooting phase.',
+  'Defend Stronghold': 'Points for holding your home objective and deployment zone free of enemies.',
+  'Display of Might': "Points for having more units than the enemy in No Man's Land.",
+  'Engage on All Fronts': 'Points for having presence in multiple table quarters at once.',
+  'Forward Position': "Points for controlling your opponent's objectives.",
+  'No Prisoners': 'Points for every enemy unit you destroy.',
+  Outflank: 'Points for units near the battlefield edges, outside your own territory.',
+  'Overwhelming Force': 'Points for destroying enemies that were holding an objective.',
+  Plunder: 'Plunder a terrain feature with a unit in your shooting phase.',
+  "Secure No Man's Land": "Points for controlling multiple objectives in No Man's Land."
 }
 
 const myDisposition = ref<Disposition | ''>('')
@@ -179,7 +183,6 @@ function addSecondary(list: SecondaryEntry[], name: string) {
   list.push({
     name,
     discarded: false,
-    notes: '',
     options: defaults.map(d => ({
       label: d.label,
       points: d.points,
@@ -245,7 +248,7 @@ const opponentId = computed(() => {
     : myActiveMatch.value.player1_id
 })
 
-const opponentLabel = computed(() => (opponentId.value ? profileName(opponentId.value) : 'motståndaren'))
+const opponentLabel = computed(() => (opponentId.value ? profileName(opponentId.value) : 'the opponent'))
 
 const applyToMatch = ref(hasReportableMatch.value)
 watch(hasReportableMatch, val => {
@@ -263,7 +266,7 @@ async function submitReport() {
     await reportMatch(myActiveMatch.value.id, myTotal.value, opponentTotal.value)
     router.push('/')
   } catch (e) {
-    reportError.value = e instanceof Error ? e.message : 'Något gick fel.'
+    reportError.value = e instanceof Error ? e.message : 'Something went wrong.'
   } finally {
     reportSubmitting.value = false
   }
@@ -272,73 +275,72 @@ async function submitReport() {
 
 <template>
   <div class="max-w-2xl space-y-6">
-    <h1 class="text-2xl font-semibold text-wh-ink">Matchtracker</h1>
+    <h1 class="text-2xl font-semibold text-wh-ink">Match Tracker</h1>
 
     <p class="text-sm text-wh-mute">
-      <template v-if="hasReportableMatch">Mot {{ opponentLabel }}</template>
-      <template v-else>Fristående spårning — inte kopplad till någon ligamatch just nu.</template>
+      <template v-if="hasReportableMatch">Vs {{ opponentLabel }}</template>
+      <template v-else>Standalone tracking — not linked to a league match right now.</template>
     </p>
 
     <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-      <h2 class="mb-1 text-lg font-medium text-wh-ink">Rapportera till liga</h2>
+      <h2 class="mb-1 text-lg font-medium text-wh-ink">Report to league</h2>
       <label v-if="hasReportableMatch" class="mt-2 flex items-center gap-2 text-sm text-wh-ink">
         <input v-model="applyToMatch" type="checkbox" class="accent-wh-accent">
-        Applicera slutpoängen på min pågående match mot {{ opponentLabel }}
+        Apply the final score to my ongoing match against {{ opponentLabel }}
       </label>
       <p v-else class="mt-2 text-sm text-wh-mute">
-        Ingen pågående ligamatch att rapportera till just nu — spårningen sparas inte någonstans.
+        No ongoing league match to report to right now — this tracking session isn't saved anywhere.
       </p>
     </section>
 
     <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
       <h2 class="mb-1 text-lg font-medium text-wh-ink">Disposition</h2>
         <p class="mb-4 text-xs text-wh-mute">
-          Från GDM 2026 (fan-gjord 11th edition-referens) — flagga om något ser fel ut.
+          From GDM 2026 (a fan-made 11th edition reference) — flag it if anything looks off.
         </p>
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
-            <label class="mb-1 block text-sm text-wh-mute">Din disposition</label>
+            <label class="mb-1 block text-sm text-wh-mute">Your disposition</label>
             <select
               v-model="myDisposition"
               class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
             >
-              <option value="" disabled>Välj...</option>
+              <option value="" disabled>Select...</option>
               <option v-for="d in DISPOSITIONS" :key="d" :value="d">{{ d }}</option>
             </select>
           </div>
           <div>
-            <label class="mb-1 block text-sm text-wh-mute">Motståndarens disposition</label>
+            <label class="mb-1 block text-sm text-wh-mute">Opponent's disposition</label>
             <select
               v-model="opponentDisposition"
               class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
             >
-              <option value="" disabled>Välj...</option>
+              <option value="" disabled>Select...</option>
               <option v-for="d in DISPOSITIONS" :key="d" :value="d">{{ d }}</option>
             </select>
           </div>
         </div>
         <div v-if="myMissionName && opponentMissionName" class="mt-4 grid gap-3 sm:grid-cols-2">
           <div class="rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-sm text-wh-ink">
-            <p class="text-xs text-wh-mute">Din primary mission</p>
+            <p class="text-xs text-wh-mute">Your primary mission</p>
             <p class="mt-1 font-semibold text-wh-gold">{{ myMissionName }}</p>
           </div>
           <div class="rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-sm text-wh-ink">
-            <p class="text-xs text-wh-mute">{{ opponentLabel }}s primary mission</p>
+            <p class="text-xs text-wh-mute">{{ opponentLabel }}'s primary mission</p>
             <p class="mt-1 font-semibold text-wh-gold">{{ opponentMissionName }}</p>
           </div>
         </div>
       </section>
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-        <h2 class="mb-1 text-lg font-medium text-wh-ink">Secondaries (valfritt)</h2>
+        <h2 class="mb-1 text-lg font-medium text-wh-ink">Secondaries (optional)</h2>
         <p class="mb-4 text-xs text-wh-mute">
-          Sätt poäng per runda för secondaryn och bocka i vilka rundor du klarade den, så summeras det automatiskt.
-          Discarda en secondary för att gråa ut den och nolla dess poäng. Max {{ MAX_POINTS_PER_ROUND }} totala
-          secondary-poäng per runda.
+          Tick off which rounds you completed each secondary and it's summed up automatically. Discard a secondary
+          to grey it out and zero its points. Max {{ MAX_POINTS_PER_ROUND }} total secondary points per round.
         </p>
         <div class="grid gap-4 sm:grid-cols-2">
           <SecondaryTracker
-            label="Dina secondaries"
+            label="Your secondaries"
             :entries="mySecondaries"
             :available="availableSecondariesFor(mySecondaries)"
             :max-points-per-round="MAX_POINTS_PER_ROUND"
@@ -347,7 +349,7 @@ async function submitReport() {
             @remove="i => removeSecondary(mySecondaries, i)"
           />
           <SecondaryTracker
-            :label="`${opponentLabel}s secondaries`"
+            :label="`${opponentLabel}'s secondaries`"
             :entries="opponentSecondaries"
             :available="availableSecondariesFor(opponentSecondaries)"
             :max-points-per-round="MAX_POINTS_PER_ROUND"
@@ -359,14 +361,14 @@ async function submitReport() {
       </section>
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-        <h2 class="mb-1 text-lg font-medium text-wh-ink">Primary-poäng per runda</h2>
-        <p class="mb-4 text-xs text-wh-mute">Max {{ MAX_POINTS_PER_ROUND }} poäng per runda.</p>
+        <h2 class="mb-1 text-lg font-medium text-wh-ink">Primary points per round</h2>
+        <p class="mb-4 text-xs text-wh-mute">Max {{ MAX_POINTS_PER_ROUND }} points per round.</p>
         <div class="space-y-3">
           <div v-for="(r, i) in rounds" :key="i" class="rounded-md border border-wh-border p-3">
-            <p class="mb-2 text-xs font-medium text-wh-mute">Runda {{ i + 1 }}</p>
+            <p class="mb-2 text-xs font-medium text-wh-mute">Round {{ i + 1 }}</p>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="mb-1 block text-xs text-wh-mute">Din primary</label>
+                <label class="mb-1 block text-xs text-wh-mute">Your primary</label>
                 <input
                   v-model.number="r.myPrimary"
                   type="number"
@@ -378,7 +380,7 @@ async function submitReport() {
                 >
               </div>
               <div>
-                <label class="mb-1 block text-xs text-wh-mute">Motst. primary</label>
+                <label class="mb-1 block text-xs text-wh-mute">Opponent primary</label>
                 <input
                   v-model.number="r.opponentPrimary"
                   type="number"
@@ -395,12 +397,12 @@ async function submitReport() {
 
         <div class="mt-4 grid grid-cols-2 gap-4">
           <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">
-            <p class="text-xs text-wh-mute">Din totala VP</p>
+            <p class="text-xs text-wh-mute">Your total VP</p>
             <p class="mt-1 text-xl font-semibold text-wh-ink">{{ myTotal }}</p>
             <p class="text-xs text-wh-mute">{{ myPrimaryTotal }} primary + {{ mySecondaryTotal }} secondary</p>
           </div>
           <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">
-            <p class="text-xs text-wh-mute">{{ opponentLabel }}s totala VP</p>
+            <p class="text-xs text-wh-mute">{{ opponentLabel }}'s total VP</p>
             <p class="mt-1 text-xl font-semibold text-wh-ink">{{ opponentTotal }}</p>
             <p class="text-xs text-wh-mute">
               {{ opponentPrimaryTotal }} primary + {{ opponentSecondaryTotal }} secondary
@@ -416,12 +418,12 @@ async function submitReport() {
           class="mt-4 rounded-md bg-wh-accent px-4 py-2 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover disabled:opacity-50"
           @click="submitReport"
         >
-          {{ reportSubmitting ? 'Rapporterar...' : 'Rapportera resultat' }}
+          {{ reportSubmitting ? 'Reporting...' : 'Report result' }}
         </button>
         <p v-else-if="hasReportableMatch" class="mt-4 text-sm text-wh-mute">
-          Bocka i "Rapportera till liga" ovan om du vill applicera detta resultat på din pågående match.
+          Tick "Report to league" above if you want to apply this result to your ongoing match.
         </p>
-        <p v-else class="mt-4 text-sm text-wh-mute">Fristående spårning — sparas inte någonstans.</p>
+        <p v-else class="mt-4 text-sm text-wh-mute">Standalone tracking — not saved anywhere.</p>
       </section>
   </div>
 </template>

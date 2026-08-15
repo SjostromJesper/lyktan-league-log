@@ -9,7 +9,6 @@ export interface SecondaryOption {
 export interface SecondaryEntry {
   name: string
   discarded: boolean
-  notes: string
   options: SecondaryOption[]
 }
 
@@ -61,10 +60,9 @@ function handleRemoveOpen() {
         >
           <span>
             {{ entry.name }}
-            <span v-if="entry.discarded" class="ml-1 text-xs text-wh-mute">(discardad)</span>
+            <span v-if="entry.discarded" class="ml-1 text-xs text-wh-mute">(discarded)</span>
             <span v-else-if="entryPoints(entry)" class="ml-1 text-xs text-wh-gold">{{ entryPoints(entry) }}p</span>
           </span>
-          <span v-if="descriptions[entry.name]" class="block text-xs text-wh-mute">{{ descriptions[entry.name] }}</span>
         </button>
       </li>
     </ul>
@@ -74,7 +72,7 @@ function handleRemoveOpen() {
       class="mt-2 w-full rounded-md border border-dashed border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-mute outline-none focus:border-wh-accent"
       @change="handleAdd"
     >
-      <option value="" disabled selected>+ Lägg till secondary</option>
+      <option value="" disabled selected>+ Add secondary</option>
       <option v-for="s in available" :key="s" :value="s">{{ s }}</option>
     </select>
 

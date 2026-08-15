@@ -34,6 +34,12 @@ function handleAdd(event: Event) {
   emit('add', value)
 }
 
+function addRandom() {
+  if (!props.available.length) return
+  const name = props.available[Math.floor(Math.random() * props.available.length)]
+  emit('add', name)
+}
+
 const openIndex = ref<number | null>(null)
 
 function handleRemoveOpen() {
@@ -67,14 +73,25 @@ function handleRemoveOpen() {
       </li>
     </ul>
 
-    <select
-      value=""
-      class="mt-2 w-full rounded-md border border-dashed border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-mute outline-none focus:border-wh-accent"
-      @change="handleAdd"
-    >
-      <option value="" disabled selected>+ Add secondary</option>
-      <option v-for="s in available" :key="s" :value="s">{{ s }}</option>
-    </select>
+    <div class="mt-2 flex gap-2">
+      <select
+        value=""
+        class="w-full rounded-md border border-dashed border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-mute outline-none focus:border-wh-accent"
+        @change="handleAdd"
+      >
+        <option value="" disabled selected>+ Add secondary</option>
+        <option v-for="s in available" :key="s" :value="s">{{ s }}</option>
+      </select>
+      <button
+        type="button"
+        title="Add a random secondary"
+        :disabled="!available.length"
+        class="shrink-0 rounded-md border border-dashed border-wh-border px-3 py-2 text-sm text-wh-mute hover:border-wh-accent hover:text-wh-ink disabled:opacity-50"
+        @click="addRandom"
+      >
+        🎲
+      </button>
+    </div>
 
     <SecondaryDetailModal
       v-if="openIndex !== null"

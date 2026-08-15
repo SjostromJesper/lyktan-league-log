@@ -34,7 +34,7 @@ const {
   setPaintedUnit,
   paintedUnits
 } = useLeague()
-const { refresh: refreshPaintedUnitPhotos, photoFor } = usePaintedUnitPhotos()
+const { refresh: refreshPaintedUnitPhotos, photoFor, revokeUnit } = usePaintedUnitPhotos()
 
 onMounted(async () => {
   await Promise.all([refresh(), refreshProfiles()])
@@ -297,9 +297,28 @@ function pendingPhoto(userId: string, unit: PaintedUnitKey) {
   return photo?.status === 'submitted' ? photo : null
 }
 
+function approvedPhoto(userId: string, unit: PaintedUnitKey) {
+  if (!selectedLeague.value) return null
+  const photo = photoFor(selectedLeague.value.id, userId, unit)
+  return photo?.status === 'approved' ? photo : null
+}
+
+async function handleRevoke(userId: string, unit: PaintedUnitKey) {
+  if (!selectedLeague.value) return
+  paintError.value = ''
+  try {
+    await revokeUnit(selectedLeague.value.id, userId, unit)
+    await refresh()
+  } catch (e) {
+    paintError.value = e instanceof Error ? e.message : 'Något gick fel.'
+  }
+}
+
 function handleUnitPillClick(userId: string, unit: PaintedUnitKey) {
   if (pendingPhoto(userId, unit)) {
     reviewingUnit.value = { userId, unit }
+  } else if (approvedPhoto(userId, unit)) {
+    handleRevoke(userId, unit)
   } else {
     handleTogglePainted(userId, unit)
   }
@@ -507,13 +526,19 @@ async function handleTogglePainted(userId: string, unit: PaintedUnitKey) {
                 v-for="(unit, index) in PAINTED_UNIT_KEYS"
                 :key="unit"
                 type="button"
-                :title="pendingPhoto(m.user_id, unit) ? `Unit ${index + 1} — väntar på granskning` : `Unit ${index + 1}`"
+                :title="
+                  pendingPhoto(m.user_id, unit)
+                    ? `Unit ${index + 1} — väntar på granskning`
+                    : approvedPhoto(m.user_id, unit)
+                      ? `Unit ${index + 1} — godkänd, klicka för att återkalla`
+                      : `Unit ${index + 1}`
+                "
                 :class="[
                   'flex h-6 w-6 items-center justify-center rounded text-xs font-medium transition-colors',
                   pendingPhoto(m.user_id, unit)
                     ? 'border-2 border-wh-gold text-wh-gold animate-pulse'
                     : isPainted(m.user_id, unit)
-                      ? 'bg-wh-gold text-wh-bg'
+                      ? 'bg-wh-gold text-wh-bg hover:bg-wh-accent hover:text-wh-ink'
                       : 'border border-wh-border text-wh-mute hover:border-wh-gold'
                 ]"
                 @click="handleUnitPillClick(m.user_id, unit)"

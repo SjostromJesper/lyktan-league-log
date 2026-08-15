@@ -81,5 +81,15 @@ export function usePaintedUnitPhotos() {
     await refresh(leagueId)
   }
 
-  return { photos, refresh, photoFor, publicUrl, uploadPhoto, submitUnit, approveUnit, rejectUnit }
+  async function revokeUnit(leagueId: string, userId: string, unitKey: PaintedUnitKey) {
+    const { error } = await supabase.rpc('revoke_painted_unit', {
+      p_league_id: leagueId,
+      p_user_id: userId,
+      p_unit_key: unitKey
+    })
+    if (error) throw new Error(error.message)
+    await refresh(leagueId)
+  }
+
+  return { photos, refresh, photoFor, publicUrl, uploadPhoto, submitUnit, approveUnit, rejectUnit, revokeUnit }
 }

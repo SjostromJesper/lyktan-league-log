@@ -118,6 +118,28 @@ const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number 
   "Secure No Man's Land": [{ label: 'Kontrollerar 2+ mål i No Man\'s Land', points: 5 }]
 }
 
+// Short functional summaries in our own words, not card flavour text.
+const SECONDARY_DESCRIPTIONS: Record<string, string> = {
+  'A Grievous Blow': 'Poäng för att döda stora fiendeenheter (startstyrka 13+).',
+  'A Tempting Target': 'Motståndaren väljer ett av dina mål som du måste försvara.',
+  Assassination: 'Poäng för att döda fiende-CHARACTERS.',
+  Beacon: "Håll en vald egen enhet (\"beacon\") utanför din egen zon/territorium.",
+  'Behind Enemy Lines': 'Poäng för egna enheter inne i motståndarens deployment zone.',
+  'Bring it Down': 'Poäng för att döda tåliga fiendemodeller (W10+).',
+  'Burden of Trust': 'Poäng för mål som "guardas" av en av dina enheter.',
+  'Centre Ground': 'Poäng för att hålla mitten av bordet fri från fiender.',
+  Cleanse: 'Poäng för att "cleansa" mål med en enhet i din shooting phase.',
+  'Defend Stronghold': 'Poäng för att hålla ditt hemmamål och din deployment zone fri från fiender.',
+  'Display of Might': 'Poäng för fler egna än fientliga enheter i No Man\'s Land.',
+  'Engage on All Fronts': 'Poäng för närvaro i flera bordskvartar samtidigt.',
+  'Forward Position': 'Poäng för att kontrollera motståndarens mål.',
+  'No Prisoners': 'Poäng för varje fiendeenhet du dödar.',
+  Outflank: 'Poäng för enheter nära bordskanterna, utanför ditt eget territorium.',
+  'Overwhelming Force': 'Poäng för att döda fiender som stod vid ett mål.',
+  Plunder: 'Plundra ett terrängområde med en enhet i din shooting phase.',
+  "Secure No Man's Land": 'Poäng för att kontrollera flera mål i No Man\'s Land.'
+}
+
 const myDisposition = ref<Disposition | ''>('')
 const opponentDisposition = ref<Disposition | ''>('')
 
@@ -306,6 +328,7 @@ async function submitReport() {
             :entries="mySecondaries"
             :available="availableSecondariesFor(mySecondaries)"
             :max-points-per-round="MAX_POINTS_PER_ROUND"
+            :descriptions="SECONDARY_DESCRIPTIONS"
             @add="name => addSecondary(mySecondaries, name)"
             @remove="i => removeSecondary(mySecondaries, i)"
           />
@@ -314,6 +337,7 @@ async function submitReport() {
             :entries="opponentSecondaries"
             :available="availableSecondariesFor(opponentSecondaries)"
             :max-points-per-round="MAX_POINTS_PER_ROUND"
+            :descriptions="SECONDARY_DESCRIPTIONS"
             @add="name => addSecondary(opponentSecondaries, name)"
             @remove="i => removeSecondary(opponentSecondaries, i)"
           />

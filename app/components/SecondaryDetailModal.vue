@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { SecondaryEntry } from './SecondaryTracker.vue'
 
-const props = defineProps<{ entry: SecondaryEntry; maxPointsPerRound: number }>()
+const props = defineProps<{ entry: SecondaryEntry; maxPointsPerRound: number; description: string }>()
 const emit = defineEmits<{ close: []; remove: [] }>()
 
 function addOption() {
@@ -20,6 +20,7 @@ function removeOption(index: number) {
         <h2 class="text-lg font-semibold text-wh-ink">{{ entry.name }}</h2>
         <button type="button" class="text-wh-mute hover:text-wh-accent" @click="emit('close')">✕</button>
       </div>
+      <p v-if="description" class="mt-1 text-sm text-wh-mute">{{ description }}</p>
 
       <label class="mt-4 flex items-center gap-2 text-sm text-wh-ink">
         <input v-model="entry.discarded" type="checkbox" class="accent-wh-accent">

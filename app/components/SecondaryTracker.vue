@@ -17,6 +17,7 @@ const props = defineProps<{
   entries: SecondaryEntry[]
   available: string[]
   maxPointsPerRound: number
+  descriptions: Record<string, string>
 }>()
 const emit = defineEmits<{ add: [name: string]; remove: [index: number] }>()
 
@@ -57,9 +58,12 @@ function handleRemoveOpen() {
           class="block w-full px-3 py-2 text-left text-sm text-wh-ink"
           @click="openIndex = i"
         >
-          {{ entry.name }}
-          <span v-if="entry.discarded" class="ml-1 text-xs text-wh-mute">(discardad)</span>
-          <span v-else-if="entryPoints(entry)" class="ml-1 text-xs text-wh-gold">{{ entryPoints(entry) }}p</span>
+          <span>
+            {{ entry.name }}
+            <span v-if="entry.discarded" class="ml-1 text-xs text-wh-mute">(discardad)</span>
+            <span v-else-if="entryPoints(entry)" class="ml-1 text-xs text-wh-gold">{{ entryPoints(entry) }}p</span>
+          </span>
+          <span v-if="descriptions[entry.name]" class="block text-xs text-wh-mute">{{ descriptions[entry.name] }}</span>
         </button>
       </li>
     </ul>
@@ -77,6 +81,7 @@ function handleRemoveOpen() {
       v-if="openIndex !== null"
       :entry="entries[openIndex]"
       :max-points-per-round="maxPointsPerRound"
+      :description="descriptions[entries[openIndex].name] ?? ''"
       @close="openIndex = null"
       @remove="handleRemoveOpen"
     />

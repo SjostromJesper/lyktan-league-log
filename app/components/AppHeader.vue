@@ -39,7 +39,6 @@ async function handleLogout() {
           </span>
         </NuxtLink>
         <NuxtLink to="/matches" class="hover:text-wh-ink">Matcher</NuxtLink>
-        <NuxtLink to="/tracker" class="hover:text-wh-ink">Tracker</NuxtLink>
         <NuxtLink to="/scoreboard" class="hover:text-wh-ink">Tabell</NuxtLink>
         <NuxtLink to="/settings" class="hover:text-wh-ink">Inställningar</NuxtLink>
         <NuxtLink v-if="isAdminView" to="/admin" class="text-wh-gold hover:text-wh-gold">Admin</NuxtLink>
@@ -64,6 +63,13 @@ async function handleLogout() {
           {{ isAdminView ? '👁 Visa som spelare' : '👁 Visa som admin' }}
         </button>
         <span class="text-wh-mute">{{ profile?.name }}</span>
+        <NuxtLink
+          to="/tracker"
+          title="Tracker"
+          class="rounded-md border border-wh-border px-2 py-1.5 text-wh-mute hover:border-wh-gold hover:text-wh-gold"
+        >
+          🎯
+        </NuxtLink>
         <button
           type="button"
           class="rounded-md border border-wh-border px-3 py-1.5 text-wh-ink hover:border-wh-accent hover:text-wh-accent"

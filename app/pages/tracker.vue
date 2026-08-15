@@ -74,14 +74,9 @@ const SECONDARY_MISSIONS = [
 // Scoring conditions summarized in our own words from the GDM 2026 defender cards (11th ed.),
 // not transcribed rule text — labels and point values only, all editable in the app.
 const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number }[]> = {
-  'A Grievous Blow': [
-    { label: 'Varje fiendeenhet (styrka 13+) dödad denna runda', points: 4 },
-    { label: '1+ fiendeenhet (styrka 13+) dödad denna runda', points: 5 }
-  ],
+  'A Grievous Blow': [{ label: '1+ fiendeenhet (styrka 13+) dödad denna runda', points: 5 }],
   'A Tempting Target': [{ label: 'Kontrollerar mitt lockbetesmål', points: 5 }],
   Assassination: [
-    { label: 'Varje fiende-CHARACTER dödad denna runda', points: 3 },
-    { label: 'Bonus: den dödade hade W4+', points: 1 },
     { label: '1+ fiende-CHARACTER dödad denna runda', points: 5 },
     { label: 'Alla fiende-CHARACTERS dödade under matchen', points: 5 }
   ],
@@ -90,10 +85,7 @@ const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number 
     { label: 'Beacon-enhet utanför mitt territorium', points: 5 }
   ],
   'Behind Enemy Lines': [{ label: 'Varje enhet helt i motståndarens deployment zone (max 5p)', points: 3 }],
-  'Bring it Down': [
-    { label: 'Varje fiendemodell (W10+) dödad denna runda', points: 4 },
-    { label: '1+ fiendemodell (W10+) dödad denna runda', points: 5 }
-  ],
+  'Bring it Down': [{ label: '1+ fiendemodell (W10+) dödad denna runda', points: 5 }],
   'Burden of Trust': [{ label: 'Varje guardat mål (max 5p)', points: 2 }],
   'Centre Ground': [
     { label: 'Enhet inom 3" från mitten, ingen fiende inom 3"', points: 3 },
@@ -112,10 +104,8 @@ const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number 
     { label: 'Fler enheter än fienden i No Man\'s Land (motst. tur)', points: 5 }
   ],
   'Engage on All Fronts': [
-    { label: 'Närvaro i tre bordskvartar', points: 2 },
-    { label: 'Närvaro i fyra bordskvartar', points: 4 },
-    { label: 'Närvaro i tre bordskvartar (tactical)', points: 3 },
-    { label: 'Närvaro i fyra bordskvartar (tactical)', points: 5 }
+    { label: 'Närvaro i tre bordskvartar', points: 3 },
+    { label: 'Närvaro i fyra bordskvartar', points: 5 }
   ],
   'Forward Position': [{ label: 'Kontrollerar motståndarens hemmamål och/eller expansionmål', points: 5 }],
   'No Prisoners': [{ label: 'Varje fiendeenhet dödad denna runda (max 5p)', points: 2 }],

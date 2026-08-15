@@ -2,6 +2,7 @@
 import type { SecondaryEntry } from '~/components/SecondaryTracker.vue'
 import type { PrimaryMissionOption } from '~/components/PrimaryMissionScoring.vue'
 import type { TrackerMatch } from '~/types'
+import { primaryMissionTotal } from '~/utils/primaryScoring'
 
 const { myActiveMatch, reportMatch } = useLeague()
 const { name: profileName } = useProfiles()
@@ -174,6 +175,9 @@ interface PrimaryScoringOption {
   points: number
   timing: string
   rounds: number[]
+  tierGroup?: string
+  tierCount?: number
+  scalesWithTierGroup?: string
 }
 
 const R_ANY = [1, 2, 3, 4, 5]
@@ -193,22 +197,30 @@ function countTiers(
   rounds: number[],
   timing: string,
   labelFor: (n: number, plus: string) => string,
-  max = 4
+  max = 4,
+  tierGroup?: string
 ): PrimaryScoringOption[] {
   return Array.from({ length: max }, (_, i) => {
     const n = i + 1
     const plus = n === max ? '+' : ''
-    return { label: labelFor(n, plus), points: rate * n, timing, rounds }
+    return { label: labelFor(n, plus), points: rate * n, timing, rounds, tierGroup, tierCount: n }
   })
 }
 
-function objectiveTiers(rate: number, rounds: number[], timing: string, max = 4): PrimaryScoringOption[] {
+function objectiveTiers(
+  rate: number,
+  rounds: number[],
+  timing: string,
+  max = 4,
+  tierGroup?: string
+): PrimaryScoringOption[] {
   return countTiers(
     rate,
     rounds,
     timing,
     (n, plus) => `Control ${n}${plus} objective${n > 1 ? 's' : ''} (excl. home)`,
-    max
+    max,
+    tierGroup
   )
 }
 
@@ -218,13 +230,14 @@ function objectiveTiers(rate: number, rounds: number[], timing: string, max = 4)
 const PRIMARY_MISSION_SCORING: Record<string, PrimaryScoringOption[]> = {
   'Battlefield Dominance': [
     { label: 'Control more objectives than your opponent', points: 2, timing: T_TURN, rounds: [1, 2] },
-    ...objectiveTiers(3, R_2_5, T_CMD),
-    ...countTiers(
-      5,
-      R_2_5,
-      T_CMD,
-      (n, plus) => `Control ${n}${plus} objective${n > 1 ? 's' : ''} (excl. home) AND control your home objective`
-    )
+    ...objectiveTiers(3, R_2_5, T_CMD, 4, 'bd-objectives'),
+    {
+      label: 'Also control your home objective',
+      points: 2,
+      timing: T_CMD,
+      rounds: R_2_5,
+      scalesWithTierGroup: 'bd-objectives'
+    }
   ],
   'Immovable Object': [
     { label: 'Control one or more central objectives', points: 3, timing: T_TURN, rounds: R_ANY },
@@ -425,6 +438,9 @@ function buildPrimaryOptions(name: string | null): PrimaryMissionOption[] {
     points: o.points,
     timing: o.timing,
     rounds: o.rounds,
+    tierGroup: o.tierGroup,
+    tierCount: o.tierCount,
+    scalesWithTierGroup: o.scalesWithTierGroup,
     roundsCompleted: Array.from({ length: 5 }, () => false)
   }))
 }
@@ -458,18 +474,6 @@ watch(opponentMissionName, name => {
   if (hydrating) return
   opponentPrimaryOptions.value = buildPrimaryOptions(name)
 })
-
-function primaryRoundPoints(options: PrimaryMissionOption[], round: number) {
-  return options.reduce((sum, o) => sum + (o.roundsCompleted[round - 1] ? o.points : 0), 0)
-}
-
-function primaryMissionTotal(options: PrimaryMissionOption[]) {
-  let total = 0
-  for (let round = 1; round <= 5; round++) {
-    total += Math.min(MAX_POINTS_PER_ROUND, primaryRoundPoints(options, round))
-  }
-  return total
-}
 
 const mySecondaries = ref<SecondaryEntry[]>([])
 const opponentSecondaries = ref<SecondaryEntry[]>([])
@@ -515,9 +519,11 @@ function secondaryPoints(list: SecondaryEntry[]) {
   return total
 }
 
-const myPrimaryTotal = computed(() => (myMissionName.value ? primaryMissionTotal(myPrimaryOptions.value) : 0))
+const myPrimaryTotal = computed(() =>
+  myMissionName.value ? primaryMissionTotal(myPrimaryOptions.value, MAX_POINTS_PER_ROUND) : 0
+)
 const opponentPrimaryTotal = computed(() =>
-  opponentMissionName.value ? primaryMissionTotal(opponentPrimaryOptions.value) : 0
+  opponentMissionName.value ? primaryMissionTotal(opponentPrimaryOptions.value, MAX_POINTS_PER_ROUND) : 0
 )
 
 const mySecondaryTotal = computed(() => secondaryPoints(mySecondaries.value))

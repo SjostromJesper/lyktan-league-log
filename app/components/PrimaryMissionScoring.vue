@@ -1,11 +1,7 @@
 <script setup lang="ts">
-export interface PrimaryMissionOption {
-  label: string
-  points: number
-  timing: string
-  rounds: number[]
-  roundsCompleted: boolean[]
-}
+import { primaryMissionTotal, primaryOptionPoints, primaryRoundPoints, type PrimaryMissionOption } from '~/utils/primaryScoring'
+
+export type { PrimaryMissionOption }
 
 const props = defineProps<{
   label: string
@@ -20,18 +16,13 @@ const showDescription = ref(false)
 const showModal = ref(false)
 
 const roundOptions = computed(() => props.options.filter(o => o.rounds.includes(activeRound.value)))
-const roundTotal = computed(() =>
-  roundOptions.value.reduce((sum, o) => (o.roundsCompleted[activeRound.value - 1] ? sum + o.points : sum), 0)
-)
+const roundTotal = computed(() => primaryRoundPoints(props.options, activeRound.value))
+const missionTotal = computed(() => primaryMissionTotal(props.options, props.maxPointsPerRound))
 
-const missionTotal = computed(() => {
-  let total = 0
-  for (let round = 1; round <= 5; round++) {
-    const pts = props.options.reduce((sum, o) => (o.roundsCompleted[round - 1] ? sum + o.points : sum), 0)
-    total += Math.min(props.maxPointsPerRound, pts)
-  }
-  return total
-})
+function displayPoints(opt: PrimaryMissionOption) {
+  if (opt.scalesWithTierGroup) return `${opt.points}p/obj`
+  return `${primaryOptionPoints(opt, props.options, activeRound.value)}p`
+}
 </script>
 
 <template>
@@ -80,7 +71,7 @@ const missionTotal = computed(() => {
           <input v-model="opt.roundsCompleted[activeRound - 1]" type="checkbox" class="mt-0.5 accent-wh-accent">
           {{ opt.label }}
         </span>
-        <span class="shrink-0 text-wh-gold">{{ opt.points }}p</span>
+        <span class="shrink-0 text-wh-gold">{{ displayPoints(opt) }}</span>
       </label>
       <p v-if="!roundOptions.length" class="text-xs text-wh-mute">No scoring options this round.</p>
     </div>
@@ -150,7 +141,7 @@ const missionTotal = computed(() => {
             <input v-model="opt.roundsCompleted[activeRound - 1]" type="checkbox" class="mt-0.5 accent-wh-accent">
             {{ opt.label }}
           </span>
-          <span class="shrink-0 text-wh-gold">{{ opt.points }}p</span>
+          <span class="shrink-0 text-wh-gold">{{ displayPoints(opt) }}</span>
         </label>
         <p v-if="!roundOptions.length" class="text-xs text-wh-mute">No scoring options this round.</p>
       </div>

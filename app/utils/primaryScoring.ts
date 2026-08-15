@@ -35,3 +35,16 @@ export function primaryMissionTotal(options: PrimaryMissionOption[], maxPointsPe
   }
   return total
 }
+
+// Tiered "control N objectives" options are mutually exclusive (you control however many
+// you control) — clicking one clears any other ticked option in the same tierGroup for that
+// round, and clicking the already-ticked one clears it (so "none" stays a valid state).
+export function toggleTierOption(options: PrimaryMissionOption[], option: PrimaryMissionOption, round: number) {
+  if (!option.tierGroup) return
+  const idx = round - 1
+  const wasSelected = option.roundsCompleted[idx]
+  for (const o of options) {
+    if (o.tierGroup === option.tierGroup) o.roundsCompleted[idx] = false
+  }
+  option.roundsCompleted[idx] = !wasSelected
+}

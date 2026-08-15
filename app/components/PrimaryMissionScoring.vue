@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { primaryMissionTotal, primaryOptionPoints, primaryRoundPoints, type PrimaryMissionOption } from '~/utils/primaryScoring'
+import {
+  primaryMissionTotal,
+  primaryOptionPoints,
+  primaryRoundPoints,
+  toggleTierOption,
+  type PrimaryMissionOption
+} from '~/utils/primaryScoring'
 
 export type { PrimaryMissionOption }
 
@@ -22,6 +28,11 @@ const missionTotal = computed(() => primaryMissionTotal(props.options, props.max
 function displayPoints(opt: PrimaryMissionOption) {
   if (opt.scalesWithTierGroup) return `${opt.points}p/obj`
   return `${primaryOptionPoints(opt, props.options, activeRound.value)}p`
+}
+
+function handleOptionClick(opt: PrimaryMissionOption) {
+  if (opt.tierGroup) toggleTierOption(props.options, opt, activeRound.value)
+  else opt.roundsCompleted[activeRound.value - 1] = !opt.roundsCompleted[activeRound.value - 1]
 }
 </script>
 
@@ -68,7 +79,7 @@ function displayPoints(opt: PrimaryMissionOption) {
         class="flex items-start justify-between gap-2 rounded-md border border-wh-border bg-wh-surface px-2 py-1.5 text-xs text-wh-ink"
       >
         <span class="flex items-start gap-2">
-          <input v-model="opt.roundsCompleted[activeRound - 1]" type="checkbox" class="mt-0.5 accent-wh-accent">
+          <input :type="opt.tierGroup ? 'radio' : 'checkbox'" :checked="opt.roundsCompleted[activeRound - 1]" class="mt-0.5 accent-wh-accent" @click.prevent="handleOptionClick(opt)">
           {{ opt.label }}
         </span>
         <span class="shrink-0 text-wh-gold">{{ displayPoints(opt) }}</span>
@@ -138,7 +149,7 @@ function displayPoints(opt: PrimaryMissionOption) {
           class="flex items-start justify-between gap-2 rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1.5 text-xs text-wh-ink"
         >
           <span class="flex items-start gap-2">
-            <input v-model="opt.roundsCompleted[activeRound - 1]" type="checkbox" class="mt-0.5 accent-wh-accent">
+            <input :type="opt.tierGroup ? 'radio' : 'checkbox'" :checked="opt.roundsCompleted[activeRound - 1]" class="mt-0.5 accent-wh-accent" @click.prevent="handleOptionClick(opt)">
             {{ opt.label }}
           </span>
           <span class="shrink-0 text-wh-gold">{{ displayPoints(opt) }}</span>

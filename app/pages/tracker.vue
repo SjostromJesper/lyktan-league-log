@@ -192,6 +192,15 @@ const T_TURN = END_OF_YOUR_TURN
 const T_CMD = 'End of your Command phase (end of your turn in round 5)'
 const T_BATTLE_END = 'End of the battle'
 
+// Tiered options ("control 1/2/3/4+") are mutually exclusive — you control however many
+// you control — so every generated tier list gets its own group id (unless one is passed
+// explicitly, e.g. to link a scaling bonus checkbox to it) for radio-style selection in the UI.
+let tierGroupSeq = 0
+function nextTierGroupId() {
+  tierGroupSeq += 1
+  return `tier-${tierGroupSeq}`
+}
+
 function countTiers(
   rate: number,
   rounds: number[],
@@ -200,10 +209,11 @@ function countTiers(
   max = 4,
   tierGroup?: string
 ): PrimaryScoringOption[] {
+  const group = tierGroup ?? nextTierGroupId()
   return Array.from({ length: max }, (_, i) => {
     const n = i + 1
     const plus = n === max ? '+' : ''
-    return { label: labelFor(n, plus), points: rate * n, timing, rounds, tierGroup, tierCount: n }
+    return { label: labelFor(n, plus), points: rate * n, timing, rounds, tierGroup: group, tierCount: n }
   })
 }
 

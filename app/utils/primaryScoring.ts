@@ -39,14 +39,21 @@ export function primaryMissionTotal(options: PrimaryMissionOption[], maxPointsPe
 }
 
 // Tiered "control N objectives" options are mutually exclusive (you control however many
-// you control) — clicking one clears any other ticked option in the same tierGroup for that
-// round, and clicking the already-ticked one clears it (so "none" stays a valid state).
-export function toggleTierOption(options: PrimaryMissionOption[], option: PrimaryMissionOption, round: number) {
-  if (!option.tierGroup) return
+// you control), and every tierGroup is fundamentally a count — so the UI drives them with
+// a +/- stepper rather than a list of individual picks. These helpers read/write "which
+// count is currently selected" without the caller needing to know which sibling option that is.
+export function tierGroupOptions(options: PrimaryMissionOption[], tierGroup: string) {
+  return options.filter(o => o.tierGroup === tierGroup).sort((a, b) => (a.tierCount ?? 0) - (b.tierCount ?? 0))
+}
+
+export function tierGroupCount(options: PrimaryMissionOption[], tierGroup: string, round: number): number {
+  const selected = options.find(o => o.tierGroup === tierGroup && o.roundsCompleted[round - 1])
+  return selected?.tierCount ?? 0
+}
+
+export function setTierGroupCount(options: PrimaryMissionOption[], tierGroup: string, round: number, count: number) {
   const idx = round - 1
-  const wasSelected = option.roundsCompleted[idx]
   for (const o of options) {
-    if (o.tierGroup === option.tierGroup) o.roundsCompleted[idx] = false
+    if (o.tierGroup === tierGroup) o.roundsCompleted[idx] = o.tierCount === count
   }
-  option.roundsCompleted[idx] = !wasSelected
 }

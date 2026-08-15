@@ -3,7 +3,9 @@ import {
   primaryMissionTotal,
   primaryOptionPoints,
   primaryRoundPoints,
-  toggleTierOption,
+  setTierGroupCount,
+  tierGroupCount,
+  tierGroupOptions,
   type PrimaryMissionOption
 } from '~/utils/primaryScoring'
 
@@ -25,6 +27,51 @@ const roundOptions = computed(() => props.options.filter(o => o.rounds.includes(
 const roundTotal = computed(() => primaryRoundPoints(props.options, activeRound.value))
 const missionTotal = computed(() => primaryMissionTotal(props.options, props.maxPointsPerRound))
 
+type RoundItem = { kind: 'tier'; tierGroup: string } | { kind: 'flat'; option: PrimaryMissionOption }
+
+const roundItems = computed<RoundItem[]>(() => {
+  const items: RoundItem[] = []
+  const seenGroups = new Set<string>()
+  for (const o of roundOptions.value) {
+    if (o.tierGroup) {
+      if (!seenGroups.has(o.tierGroup)) {
+        seenGroups.add(o.tierGroup)
+        items.push({ kind: 'tier', tierGroup: o.tierGroup })
+      }
+    } else {
+      items.push({ kind: 'flat', option: o })
+    }
+  }
+  return items
+})
+
+function tierMax(tierGroup: string) {
+  const opts = tierGroupOptions(props.options, tierGroup)
+  return Math.max(...opts.map(o => o.tierCount ?? 0))
+}
+
+function tierCount(tierGroup: string) {
+  return tierGroupCount(props.options, tierGroup, activeRound.value)
+}
+
+function tierLabel(tierGroup: string) {
+  const opts = tierGroupOptions(props.options, tierGroup)
+  const count = tierCount(tierGroup)
+  return (opts.find(o => o.tierCount === count) ?? opts[0])?.label ?? ''
+}
+
+function tierPoints(tierGroup: string) {
+  const count = tierCount(tierGroup)
+  if (!count) return 0
+  const opts = tierGroupOptions(props.options, tierGroup)
+  return opts.find(o => o.tierCount === count)?.points ?? 0
+}
+
+function stepTier(tierGroup: string, delta: number) {
+  const next = Math.max(0, Math.min(tierMax(tierGroup), tierCount(tierGroup) + delta))
+  setTierGroupCount(props.options, tierGroup, activeRound.value, next)
+}
+
 function displayPoints(opt: PrimaryMissionOption) {
   if (opt.scalesWithTierGroup) {
     const parts = []
@@ -35,9 +82,8 @@ function displayPoints(opt: PrimaryMissionOption) {
   return `${primaryOptionPoints(opt, props.options, activeRound.value)}p`
 }
 
-function handleOptionClick(opt: PrimaryMissionOption) {
-  if (opt.tierGroup) toggleTierOption(props.options, opt, activeRound.value)
-  else opt.roundsCompleted[activeRound.value - 1] = !opt.roundsCompleted[activeRound.value - 1]
+function toggleFlat(opt: PrimaryMissionOption) {
+  opt.roundsCompleted[activeRound.value - 1] = !opt.roundsCompleted[activeRound.value - 1]
 }
 </script>
 
@@ -78,39 +124,67 @@ function handleOptionClick(opt: PrimaryMissionOption) {
     </div>
 
     <div class="mt-2 space-y-1.5">
-      <label
-        v-for="(opt, oi) in roundOptions"
-        :key="oi"
-        class="flex cursor-pointer items-start justify-between gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors"
-        :class="
-          opt.roundsCompleted[activeRound - 1]
-            ? 'border-wh-gold bg-wh-gold/10 text-wh-ink'
-            : 'border-wh-border bg-wh-surface text-wh-ink hover:border-wh-gold/50'
-        "
-      >
-        <span class="flex items-start gap-2">
-          <input
-            :type="opt.tierGroup ? 'radio' : 'checkbox'"
-            :checked="opt.roundsCompleted[activeRound - 1]"
-            class="sr-only"
-            @click.prevent="handleOptionClick(opt)"
-          >
-          <span
-            class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border transition-colors"
-            :class="[
-              opt.tierGroup ? 'rounded-full' : 'rounded-sm',
-              opt.roundsCompleted[activeRound - 1] ? 'border-wh-gold bg-wh-gold' : 'border-wh-mute'
-            ]"
-          >
-            <span v-if="!opt.tierGroup && opt.roundsCompleted[activeRound - 1]" class="text-[10px] leading-none text-wh-bg">
-              ✓
+      <template v-for="item in roundItems" :key="item.kind === 'tier' ? item.tierGroup : item.option.label">
+        <div
+          v-if="item.kind === 'tier'"
+          class="rounded-md border px-2 py-1.5 text-xs transition-colors"
+          :class="tierCount(item.tierGroup) ? 'border-wh-gold bg-wh-gold/10 text-wh-ink' : 'border-wh-border bg-wh-surface text-wh-ink'"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <span>{{ tierLabel(item.tierGroup) }}</span>
+            <span class="shrink-0 text-wh-gold">{{ tierPoints(item.tierGroup) }}p</span>
+          </div>
+          <div class="mt-1.5 flex items-center gap-2">
+            <button
+              type="button"
+              class="flex h-6 w-6 items-center justify-center rounded-md border border-wh-border text-wh-mute hover:border-wh-gold hover:text-wh-ink disabled:opacity-30"
+              :disabled="tierCount(item.tierGroup) === 0"
+              @click="stepTier(item.tierGroup, -1)"
+            >
+              −
+            </button>
+            <span class="w-6 text-center font-semibold text-wh-ink">
+              {{ tierCount(item.tierGroup) }}{{ tierCount(item.tierGroup) === tierMax(item.tierGroup) ? '+' : '' }}
             </span>
+            <button
+              type="button"
+              class="flex h-6 w-6 items-center justify-center rounded-md border border-wh-border text-wh-mute hover:border-wh-gold hover:text-wh-ink disabled:opacity-30"
+              :disabled="tierCount(item.tierGroup) === tierMax(item.tierGroup)"
+              @click="stepTier(item.tierGroup, 1)"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        <label
+          v-else
+          class="flex cursor-pointer items-start justify-between gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors"
+          :class="
+            item.option.roundsCompleted[activeRound - 1]
+              ? 'border-wh-gold bg-wh-gold/10 text-wh-ink'
+              : 'border-wh-border bg-wh-surface text-wh-ink hover:border-wh-gold/50'
+          "
+        >
+          <span class="flex items-start gap-2">
+            <input
+              type="checkbox"
+              :checked="item.option.roundsCompleted[activeRound - 1]"
+              class="sr-only"
+              @click.prevent="toggleFlat(item.option)"
+            >
+            <span
+              class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-colors"
+              :class="item.option.roundsCompleted[activeRound - 1] ? 'border-wh-gold bg-wh-gold' : 'border-wh-mute'"
+            >
+              <span v-if="item.option.roundsCompleted[activeRound - 1]" class="text-[10px] leading-none text-wh-bg">✓</span>
+            </span>
+            {{ item.option.label }}
           </span>
-          {{ opt.label }}
-        </span>
-        <span class="shrink-0 text-wh-gold">{{ displayPoints(opt) }}</span>
-      </label>
-      <p v-if="!roundOptions.length" class="text-xs text-wh-mute">No scoring options this round.</p>
+          <span class="shrink-0 text-wh-gold">{{ displayPoints(item.option) }}</span>
+        </label>
+      </template>
+      <p v-if="!roundItems.length" class="text-xs text-wh-mute">No scoring options this round.</p>
     </div>
 
     <p class="mt-2 text-xs text-wh-mute">
@@ -169,39 +243,67 @@ function handleOptionClick(opt: PrimaryMissionOption) {
       </div>
 
       <div class="mt-3 space-y-1.5">
-        <label
-          v-for="(opt, oi) in roundOptions"
-          :key="oi"
-          class="flex cursor-pointer items-start justify-between gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors"
-          :class="
-            opt.roundsCompleted[activeRound - 1]
-              ? 'border-wh-gold bg-wh-gold/10 text-wh-ink'
-              : 'border-wh-border bg-wh-surface-alt text-wh-ink hover:border-wh-gold/50'
-          "
-        >
-          <span class="flex items-start gap-2">
-            <input
-              :type="opt.tierGroup ? 'radio' : 'checkbox'"
-              :checked="opt.roundsCompleted[activeRound - 1]"
-              class="sr-only"
-              @click.prevent="handleOptionClick(opt)"
-            >
-            <span
-              class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border transition-colors"
-              :class="[
-                opt.tierGroup ? 'rounded-full' : 'rounded-sm',
-                opt.roundsCompleted[activeRound - 1] ? 'border-wh-gold bg-wh-gold' : 'border-wh-mute'
-              ]"
-            >
-              <span v-if="!opt.tierGroup && opt.roundsCompleted[activeRound - 1]" class="text-[10px] leading-none text-wh-bg">
-                ✓
+        <template v-for="item in roundItems" :key="item.kind === 'tier' ? item.tierGroup : item.option.label">
+          <div
+            v-if="item.kind === 'tier'"
+            class="rounded-md border px-2 py-1.5 text-xs transition-colors"
+            :class="tierCount(item.tierGroup) ? 'border-wh-gold bg-wh-gold/10 text-wh-ink' : 'border-wh-border bg-wh-surface-alt text-wh-ink'"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <span>{{ tierLabel(item.tierGroup) }}</span>
+              <span class="shrink-0 text-wh-gold">{{ tierPoints(item.tierGroup) }}p</span>
+            </div>
+            <div class="mt-1.5 flex items-center gap-2">
+              <button
+                type="button"
+                class="flex h-7 w-7 items-center justify-center rounded-md border border-wh-border text-wh-mute hover:border-wh-gold hover:text-wh-ink disabled:opacity-30"
+                :disabled="tierCount(item.tierGroup) === 0"
+                @click="stepTier(item.tierGroup, -1)"
+              >
+                −
+              </button>
+              <span class="w-6 text-center font-semibold text-wh-ink">
+                {{ tierCount(item.tierGroup) }}{{ tierCount(item.tierGroup) === tierMax(item.tierGroup) ? '+' : '' }}
               </span>
+              <button
+                type="button"
+                class="flex h-7 w-7 items-center justify-center rounded-md border border-wh-border text-wh-mute hover:border-wh-gold hover:text-wh-ink disabled:opacity-30"
+                :disabled="tierCount(item.tierGroup) === tierMax(item.tierGroup)"
+                @click="stepTier(item.tierGroup, 1)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <label
+            v-else
+            class="flex cursor-pointer items-start justify-between gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors"
+            :class="
+              item.option.roundsCompleted[activeRound - 1]
+                ? 'border-wh-gold bg-wh-gold/10 text-wh-ink'
+                : 'border-wh-border bg-wh-surface-alt text-wh-ink hover:border-wh-gold/50'
+            "
+          >
+            <span class="flex items-start gap-2">
+              <input
+                type="checkbox"
+                :checked="item.option.roundsCompleted[activeRound - 1]"
+                class="sr-only"
+                @click.prevent="toggleFlat(item.option)"
+              >
+              <span
+                class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-colors"
+                :class="item.option.roundsCompleted[activeRound - 1] ? 'border-wh-gold bg-wh-gold' : 'border-wh-mute'"
+              >
+                <span v-if="item.option.roundsCompleted[activeRound - 1]" class="text-[10px] leading-none text-wh-bg">✓</span>
+              </span>
+              {{ item.option.label }}
             </span>
-            {{ opt.label }}
-          </span>
-          <span class="shrink-0 text-wh-gold">{{ displayPoints(opt) }}</span>
-        </label>
-        <p v-if="!roundOptions.length" class="text-xs text-wh-mute">No scoring options this round.</p>
+            <span class="shrink-0 text-wh-gold">{{ displayPoints(item.option) }}</span>
+          </label>
+        </template>
+        <p v-if="!roundItems.length" class="text-xs text-wh-mute">No scoring options this round.</p>
       </div>
 
       <p class="mt-2 text-xs text-wh-mute">

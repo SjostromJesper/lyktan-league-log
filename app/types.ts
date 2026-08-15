@@ -71,6 +71,22 @@ export interface Match {
   confirmed_at: string | null
 }
 
+export interface TrackerMatch {
+  id: string
+  user_id: string
+  name: string | null
+  my_disposition: string | null
+  opponent_disposition: string | null
+  my_primary_options: unknown[]
+  opponent_primary_options: unknown[]
+  my_secondaries: unknown[]
+  opponent_secondaries: unknown[]
+  apply_to_match: boolean
+  saved_to_history: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -80,6 +96,7 @@ export interface Database {
       signups: { Row: Signup; Insert: Partial<Signup>; Update: Partial<Signup> }
       matches: { Row: Match; Insert: Partial<Match>; Update: Partial<Match> }
       painted_units: { Row: PaintedUnits; Insert: Partial<PaintedUnits>; Update: Partial<PaintedUnits> }
+      tracker_matches: { Row: TrackerMatch; Insert: Partial<TrackerMatch>; Update: Partial<TrackerMatch> }
     }
   }
 }

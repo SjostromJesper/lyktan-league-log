@@ -1,11 +1,22 @@
 <script setup lang="ts">
 import type { SecondaryEntry } from '~/components/SecondaryTracker.vue'
 import type { PrimaryMissionOption } from '~/components/PrimaryMissionScoring.vue'
+import type { TrackerMatch } from '~/types'
 
 const { myActiveMatch, reportMatch } = useLeague()
 const { name: profileName } = useProfiles()
 const currentUserId = useCurrentUserId()
 const router = useRouter()
+const {
+  matches: savedMatches,
+  loaded: matchesLoaded,
+  refresh: refreshMatches,
+  createMatch,
+  updateMatch,
+  deleteMatch,
+  setSavedToHistory,
+  expiresAt
+} = useTrackerMatches()
 
 const DISPOSITIONS = ['Take and Hold', 'Purge the Foe', 'Disruption', 'Reconnaissance', 'Priority Assets'] as const
 type Disposition = (typeof DISPOSITIONS)[number]
@@ -430,10 +441,16 @@ const opponentMissionName = computed(() => {
 const myPrimaryOptions = ref<PrimaryMissionOption[]>(buildPrimaryOptions(myMissionName.value))
 const opponentPrimaryOptions = ref<PrimaryMissionOption[]>(buildPrimaryOptions(opponentMissionName.value))
 
+// Set while restoring a saved match so the mission-name watchers below don't wipe the
+// restored round-completion state with a freshly built (all-unticked) options array.
+let hydrating = false
+
 watch(myMissionName, name => {
+  if (hydrating) return
   myPrimaryOptions.value = buildPrimaryOptions(name)
 })
 watch(opponentMissionName, name => {
+  if (hydrating) return
   opponentPrimaryOptions.value = buildPrimaryOptions(name)
 })
 
@@ -536,12 +553,202 @@ async function submitReport() {
     reportSubmitting.value = false
   }
 }
+
+// --- Saved match list -------------------------------------------------------
+
+const currentMatchId = ref<string | null>(null)
+const currentMatch = computed(() => savedMatches.value.find(m => m.id === currentMatchId.value) ?? null)
+const showNewMatchForm = ref(false)
+const newMatchName = ref('')
+const matchesError = ref('')
+
+function matchDisplayName(match: TrackerMatch) {
+  if (match.name) return match.name
+  if (match.my_disposition && match.opponent_disposition) return `${match.my_disposition} vs ${match.opponent_disposition}`
+  return 'New match'
+}
+
+function persistedMatchKey() {
+  return currentUserId.value ? `wh-tracker-match:${currentUserId.value}` : null
+}
+
+function loadPersistedMatchId(): string | null {
+  const key = persistedMatchKey()
+  if (!key || typeof window === 'undefined') return null
+  return window.localStorage.getItem(key)
+}
+
+function persistMatchId(id: string | null) {
+  const key = persistedMatchKey()
+  if (!key || typeof window === 'undefined') return
+  if (id) window.localStorage.setItem(key, id)
+  else window.localStorage.removeItem(key)
+}
+
+async function openMatch(match: TrackerMatch) {
+  hydrating = true
+  myDisposition.value = ((match.my_disposition as Disposition) ?? '') as Disposition | ''
+  opponentDisposition.value = ((match.opponent_disposition as Disposition) ?? '') as Disposition | ''
+  myPrimaryOptions.value = (match.my_primary_options as PrimaryMissionOption[]) ?? []
+  opponentPrimaryOptions.value = (match.opponent_primary_options as PrimaryMissionOption[]) ?? []
+  mySecondaries.value = (match.my_secondaries as SecondaryEntry[]) ?? []
+  opponentSecondaries.value = (match.opponent_secondaries as SecondaryEntry[]) ?? []
+  applyToMatch.value = match.apply_to_match ?? hasReportableMatch.value
+  dispositionsLocked.value = false
+  currentMatchId.value = match.id
+  persistMatchId(match.id)
+  await nextTick()
+  hydrating = false
+}
+
+function closeMatch() {
+  currentMatchId.value = null
+  persistMatchId(null)
+}
+
+async function startNewMatch() {
+  matchesError.value = ''
+  try {
+    const created = await createMatch(newMatchName.value)
+    newMatchName.value = ''
+    showNewMatchForm.value = false
+    await openMatch(created)
+  } catch (e) {
+    matchesError.value = e instanceof Error ? e.message : 'Something went wrong.'
+  }
+}
+
+async function removeMatch(match: TrackerMatch) {
+  matchesError.value = ''
+  try {
+    await deleteMatch(match.id)
+    if (currentMatchId.value === match.id) closeMatch()
+  } catch (e) {
+    matchesError.value = e instanceof Error ? e.message : 'Something went wrong.'
+  }
+}
+
+async function toggleHistory(match: TrackerMatch) {
+  matchesError.value = ''
+  try {
+    await setSavedToHistory(match.id, !match.saved_to_history)
+  } catch (e) {
+    matchesError.value = e instanceof Error ? e.message : 'Something went wrong.'
+  }
+}
+
+let saveTimeout: ReturnType<typeof setTimeout> | null = null
+
+function scheduleSave() {
+  if (hydrating || !currentMatchId.value) return
+  if (saveTimeout) clearTimeout(saveTimeout)
+  const id = currentMatchId.value
+  saveTimeout = setTimeout(() => {
+    updateMatch(id, {
+      my_disposition: myDisposition.value || null,
+      opponent_disposition: opponentDisposition.value || null,
+      my_primary_options: myPrimaryOptions.value,
+      opponent_primary_options: opponentPrimaryOptions.value,
+      my_secondaries: mySecondaries.value,
+      opponent_secondaries: opponentSecondaries.value,
+      apply_to_match: applyToMatch.value
+    })
+  }, 600)
+}
+
+watch([myDisposition, opponentDisposition, applyToMatch], scheduleSave)
+watch([myPrimaryOptions, opponentPrimaryOptions, mySecondaries, opponentSecondaries], scheduleSave, { deep: true })
+
+onMounted(async () => {
+  await refreshMatches()
+  const persisted = loadPersistedMatchId()
+  const match = persisted ? savedMatches.value.find(m => m.id === persisted) : null
+  if (match) await openMatch(match)
+})
 </script>
 
 <template>
   <div class="max-w-2xl space-y-6">
     <h1 class="text-2xl font-semibold text-wh-ink">Match Tracker</h1>
 
+    <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="text-lg font-medium text-wh-ink">Your matches</h2>
+        <button
+          type="button"
+          class="shrink-0 rounded-md border border-dashed border-wh-border px-3 py-1.5 text-xs text-wh-ink hover:border-wh-accent"
+          @click="showNewMatchForm = !showNewMatchForm"
+        >
+          + New match
+        </button>
+      </div>
+      <p class="mt-1 text-xs text-wh-mute">
+        Matches are kept for 3 days unless you save them to your history.
+      </p>
+
+      <div v-if="showNewMatchForm" class="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          v-model="newMatchName"
+          type="text"
+          maxlength="50"
+          placeholder="Match name (optional)"
+          class="min-w-0 flex-1 rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-sm text-wh-ink outline-none focus:border-wh-accent"
+          @keyup.enter="startNewMatch"
+        >
+        <button
+          type="button"
+          class="rounded-md bg-wh-accent px-3 py-2 text-sm font-medium text-wh-ink hover:bg-wh-accent-hover"
+          @click="startNewMatch"
+        >
+          Create
+        </button>
+      </div>
+
+      <p v-if="matchesError" class="mt-3 text-sm text-wh-accent">{{ matchesError }}</p>
+
+      <ul v-if="savedMatches.length" class="mt-3 space-y-1">
+        <li
+          v-for="match in savedMatches"
+          :key="match.id"
+          class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
+          :class="match.id === currentMatchId ? 'border-wh-gold bg-wh-surface-alt' : 'border-wh-border'"
+        >
+          <button type="button" class="min-w-0 flex-1 text-left text-wh-ink" @click="openMatch(match)">
+            <span class="block truncate">{{ matchDisplayName(match) }}</span>
+            <span class="block text-xs text-wh-mute">
+              {{ new Date(match.created_at).toLocaleDateString() }}
+              <template v-if="!match.saved_to_history">
+                — expires {{ expiresAt(match).toLocaleDateString() }}
+              </template>
+              <template v-else> — saved to history</template>
+            </span>
+          </button>
+          <button
+            type="button"
+            :title="match.saved_to_history ? 'Remove from history (3-day expiry resumes)' : 'Save to history (never expires)'"
+            class="shrink-0 rounded-md border border-wh-border px-2 py-1 text-xs text-wh-mute hover:border-wh-gold hover:text-wh-ink"
+            @click="toggleHistory(match)"
+          >
+            {{ match.saved_to_history ? '★' : '☆' }}
+          </button>
+          <button
+            type="button"
+            title="Delete match"
+            class="shrink-0 rounded-md border border-wh-border px-2 py-1 text-xs text-wh-mute hover:border-wh-accent hover:text-wh-ink"
+            @click="removeMatch(match)"
+          >
+            ✕
+          </button>
+        </li>
+      </ul>
+      <p v-else-if="matchesLoaded" class="mt-3 text-sm text-wh-mute">No saved matches yet.</p>
+    </section>
+
+    <p v-if="!currentMatch" class="text-sm text-wh-mute">
+      Open a match above, or start a new one, to begin tracking.
+    </p>
+
+    <template v-else>
     <p class="text-sm text-wh-mute">
       <template v-if="hasReportableMatch">Vs {{ opponentLabel }}</template>
       <template v-else>Standalone tracking — not linked to a league match right now.</template>
@@ -681,5 +888,6 @@ async function submitReport() {
         </p>
         <p v-else class="mt-4 text-sm text-wh-mute">Standalone tracking — not saved anywhere.</p>
       </section>
+    </template>
   </div>
 </template>

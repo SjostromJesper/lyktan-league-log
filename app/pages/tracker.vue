@@ -71,51 +71,64 @@ const SECONDARY_MISSIONS = [
   "Secure No Man's Land"
 ]
 
+const END_OF_YOUR_TURN = 'Slutet av din tur'
+const END_OF_OPPONENT_TURN = 'Slutet av motståndarens tur'
+const END_OF_EITHER_TURN = 'Slutet av endera spelares tur'
+const END_OF_OPPONENT_TURN_OR_R5 = 'Slutet av motståndarens tur / slutet av runda 5'
+
 // Scoring conditions summarized in our own words from the GDM 2026 defender cards (11th ed.),
-// not transcribed rule text — labels and point values only, all editable in the app.
-const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number }[]> = {
-  'A Grievous Blow': [{ label: '1+ fiendeenhet (styrka 13+) dödad denna runda', points: 5 }],
-  'A Tempting Target': [{ label: 'Kontrollerar mitt lockbetesmål', points: 5 }],
+// not transcribed rule text — labels, point values, and timing, all editable in the app.
+const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number; timing: string }[]> = {
+  'A Grievous Blow': [
+    { label: '1+ fiendeenhet (styrka 13+) dödad denna runda', points: 5, timing: END_OF_EITHER_TURN }
+  ],
+  'A Tempting Target': [{ label: 'Kontrollerar mitt lockbetesmål', points: 5, timing: END_OF_YOUR_TURN }],
   Assassination: [
-    { label: '1+ fiende-CHARACTER dödad denna runda', points: 5 },
-    { label: 'Alla fiende-CHARACTERS dödade under matchen', points: 5 }
+    { label: '1+ fiende-CHARACTER dödad denna runda', points: 5, timing: END_OF_EITHER_TURN },
+    { label: 'Alla fiende-CHARACTERS dödade under matchen', points: 5, timing: END_OF_EITHER_TURN }
   ],
   Beacon: [
-    { label: 'Beacon-enhet utanför min deployment zone', points: 3 },
-    { label: 'Beacon-enhet utanför mitt territorium', points: 5 }
+    { label: 'Beacon-enhet utanför min deployment zone', points: 3, timing: END_OF_OPPONENT_TURN_OR_R5 },
+    { label: 'Beacon-enhet utanför mitt territorium', points: 5, timing: END_OF_OPPONENT_TURN_OR_R5 }
   ],
-  'Behind Enemy Lines': [{ label: 'Varje enhet helt i motståndarens deployment zone (max 5p)', points: 3 }],
-  'Bring it Down': [{ label: '1+ fiendemodell (W10+) dödad denna runda', points: 5 }],
-  'Burden of Trust': [{ label: 'Varje guardat mål (max 5p)', points: 2 }],
+  'Behind Enemy Lines': [
+    { label: 'Varje enhet helt i motståndarens deployment zone (max 5p)', points: 3, timing: END_OF_YOUR_TURN }
+  ],
+  'Bring it Down': [{ label: '1+ fiendemodell (W10+) dödad denna runda', points: 5, timing: END_OF_EITHER_TURN }],
+  'Burden of Trust': [{ label: 'Varje guardat mål (max 5p)', points: 2, timing: END_OF_OPPONENT_TURN_OR_R5 }],
   'Centre Ground': [
-    { label: 'Enhet inom 3" från mitten, ingen fiende inom 3"', points: 3 },
-    { label: 'Enhet inom 3" från mitten, ingen fiende inom 6"', points: 5 }
+    { label: 'Enhet inom 3" från mitten, ingen fiende inom 3"', points: 3, timing: END_OF_YOUR_TURN },
+    { label: 'Enhet inom 3" från mitten, ingen fiende inom 6"', points: 5, timing: END_OF_YOUR_TURN }
   ],
   Cleanse: [
-    { label: 'Ett mål cleansat denna runda', points: 2 },
-    { label: 'Två eller fler mål cleansade denna runda', points: 5 }
+    { label: 'Ett mål cleansat denna runda', points: 2, timing: END_OF_YOUR_TURN },
+    { label: 'Två eller fler mål cleansade denna runda', points: 5, timing: END_OF_YOUR_TURN }
   ],
   'Defend Stronghold': [
-    { label: 'Kontrollerar hemmamål', points: 3 },
-    { label: 'Bonus: ingen fiende i min deployment zone', points: 2 }
+    { label: 'Kontrollerar hemmamål', points: 3, timing: END_OF_OPPONENT_TURN_OR_R5 },
+    { label: 'Bonus: ingen fiende i min deployment zone', points: 2, timing: END_OF_OPPONENT_TURN_OR_R5 }
   ],
   'Display of Might': [
-    { label: 'Fler enheter än fienden i No Man\'s Land (min tur)', points: 2 },
-    { label: 'Fler enheter än fienden i No Man\'s Land (motst. tur)', points: 5 }
+    { label: 'Fler enheter än fienden i No Man\'s Land (min tur)', points: 2, timing: END_OF_YOUR_TURN },
+    { label: 'Fler enheter än fienden i No Man\'s Land (motst. tur)', points: 5, timing: END_OF_OPPONENT_TURN }
   ],
   'Engage on All Fronts': [
-    { label: 'Närvaro i tre bordskvartar', points: 3 },
-    { label: 'Närvaro i fyra bordskvartar', points: 5 }
+    { label: 'Närvaro i tre bordskvartar', points: 3, timing: END_OF_YOUR_TURN },
+    { label: 'Närvaro i fyra bordskvartar', points: 5, timing: END_OF_YOUR_TURN }
   ],
-  'Forward Position': [{ label: 'Kontrollerar motståndarens hemmamål och/eller expansionmål', points: 5 }],
-  'No Prisoners': [{ label: 'Varje fiendeenhet dödad denna runda (max 5p)', points: 2 }],
+  'Forward Position': [
+    { label: 'Kontrollerar motståndarens hemmamål och/eller expansionmål', points: 5, timing: END_OF_YOUR_TURN }
+  ],
+  'No Prisoners': [{ label: 'Varje fiendeenhet dödad denna runda (max 5p)', points: 2, timing: END_OF_EITHER_TURN }],
   Outflank: [
-    { label: '1+ enhet inom 6" av kant, utanför territorium', points: 3 },
-    { label: '2+ enheter inom 6" av motsatta kanter, ej i territorium', points: 5 }
+    { label: '1+ enhet inom 6" av kant, utanför territorium', points: 3, timing: END_OF_YOUR_TURN },
+    { label: '2+ enheter inom 6" av motsatta kanter, ej i territorium', points: 5, timing: END_OF_YOUR_TURN }
   ],
-  'Overwhelming Force': [{ label: 'Varje fiendeenhet vid mål dödad denna runda (max 5p)', points: 3 }],
-  Plunder: [{ label: 'Terrängområde plundrat denna runda', points: 5 }],
-  "Secure No Man's Land": [{ label: 'Kontrollerar 2+ mål i No Man\'s Land', points: 5 }]
+  'Overwhelming Force': [
+    { label: 'Varje fiendeenhet vid mål dödad denna runda (max 5p)', points: 3, timing: END_OF_EITHER_TURN }
+  ],
+  Plunder: [{ label: 'Terrängområde plundrat denna runda', points: 5, timing: END_OF_YOUR_TURN }],
+  "Secure No Man's Land": [{ label: 'Kontrollerar 2+ mål i No Man\'s Land', points: 5, timing: END_OF_YOUR_TURN }]
 }
 
 // Short functional summaries in our own words, not card flavour text.
@@ -170,6 +183,7 @@ function addSecondary(list: SecondaryEntry[], name: string) {
     options: defaults.map(d => ({
       label: d.label,
       points: d.points,
+      timing: d.timing,
       roundsCompleted: Array.from({ length: 5 }, () => false)
     }))
   })

@@ -2,6 +2,7 @@
 export interface SecondaryOption {
   label: string
   points: number | null
+  timing: string
   roundsCompleted: boolean[]
 }
 

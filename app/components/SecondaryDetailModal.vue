@@ -5,7 +5,12 @@ const props = defineProps<{ entry: SecondaryEntry; maxPointsPerRound: number; de
 const emit = defineEmits<{ close: []; remove: [] }>()
 
 function addOption() {
-  props.entry.options.push({ label: '', points: null, roundsCompleted: Array.from({ length: 5 }, () => false) })
+  props.entry.options.push({
+    label: '',
+    points: null,
+    timing: '',
+    roundsCompleted: Array.from({ length: 5 }, () => false)
+  })
 }
 
 function removeOption(index: number) {
@@ -63,23 +68,32 @@ function removeOption(index: number) {
                   class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-sm text-wh-ink outline-none focus:border-wh-accent"
                 >
               </div>
-              <div>
-                <label class="mb-1 block text-xs text-wh-mute">Klar i runda</label>
-                <div class="flex gap-1">
-                  <button
-                    v-for="(done, ri) in opt.roundsCompleted"
-                    :key="ri"
-                    type="button"
-                    :title="`Runda ${ri + 1}`"
-                    :class="[
-                      'flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors',
-                      done ? 'bg-wh-gold text-wh-bg' : 'border border-wh-border text-wh-mute hover:border-wh-gold'
-                    ]"
-                    @click="opt.roundsCompleted[ri] = !opt.roundsCompleted[ri]"
-                  >
-                    {{ ri + 1 }}
-                  </button>
-                </div>
+              <div class="flex-1">
+                <label class="mb-1 block text-xs text-wh-mute">Avslutas</label>
+                <input
+                  v-model="opt.timing"
+                  type="text"
+                  placeholder="T.ex. Slutet av din tur"
+                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-2 py-1 text-sm text-wh-ink outline-none focus:border-wh-accent"
+                >
+              </div>
+            </div>
+            <div class="mt-2">
+              <label class="mb-1 block text-xs text-wh-mute">Klar i runda</label>
+              <div class="flex gap-1">
+                <button
+                  v-for="(done, ri) in opt.roundsCompleted"
+                  :key="ri"
+                  type="button"
+                  :title="`Runda ${ri + 1}`"
+                  :class="[
+                    'flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors',
+                    done ? 'bg-wh-gold text-wh-bg' : 'border border-wh-border text-wh-mute hover:border-wh-gold'
+                  ]"
+                  @click="opt.roundsCompleted[ri] = !opt.roundsCompleted[ri]"
+                >
+                  {{ ri + 1 }}
+                </button>
               </div>
             </div>
           </div>

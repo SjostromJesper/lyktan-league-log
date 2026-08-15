@@ -415,6 +415,7 @@ function buildPrimaryOptions(name: string | null): PrimaryMissionOption[] {
 
 const myDisposition = ref<Disposition | ''>('')
 const opponentDisposition = ref<Disposition | ''>('')
+const dispositionsLocked = ref(false)
 
 const myMissionName = computed(() => {
   if (!myDisposition.value || !opponentDisposition.value) return null
@@ -576,7 +577,18 @@ async function submitReport() {
     </section>
 
     <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-      <h2 class="mb-1 text-lg font-medium text-wh-ink">Disposition</h2>
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="mb-1 text-lg font-medium text-wh-ink">Disposition</h2>
+        <button
+          v-if="myMissionName && opponentMissionName"
+          type="button"
+          class="mb-1 shrink-0 rounded-md border border-wh-border px-2 py-1 text-xs text-wh-mute hover:border-wh-gold hover:text-wh-ink"
+          :title="dispositionsLocked ? 'Unlock to change dispositions' : 'Lock to prevent accidental changes'"
+          @click="dispositionsLocked = !dispositionsLocked"
+        >
+          {{ dispositionsLocked ? '🔒 Locked' : '🔓 Lock' }}
+        </button>
+      </div>
         <p class="mb-4 text-xs text-wh-mute">
           From GDM 2026 (a fan-made 11th edition reference) — flag it if anything looks off.
         </p>
@@ -585,7 +597,8 @@ async function submitReport() {
             <label class="mb-1 block text-sm text-wh-mute">Your disposition</label>
             <select
               v-model="myDisposition"
-              class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+              :disabled="dispositionsLocked"
+              class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent disabled:opacity-50"
             >
               <option value="" disabled>Select...</option>
               <option v-for="d in DISPOSITIONS" :key="d" :value="d">{{ d }}</option>
@@ -595,7 +608,8 @@ async function submitReport() {
             <label class="mb-1 block text-sm text-wh-mute">Opponent's disposition</label>
             <select
               v-model="opponentDisposition"
-              class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+              :disabled="dispositionsLocked"
+              class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent disabled:opacity-50"
             >
               <option value="" disabled>Select...</option>
               <option v-for="d in DISPOSITIONS" :key="d" :value="d">{{ d }}</option>

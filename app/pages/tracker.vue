@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SecondaryEntry } from '~/components/SecondaryTracker.vue'
+import type { PrimaryMissionOption } from '~/components/PrimaryMissionScoring.vue'
 
 const { myActiveMatch, reportMatch } = useLeague()
 const { name: profileName } = useProfiles()
@@ -157,6 +158,261 @@ const SECONDARY_DESCRIPTIONS: Record<string, string> = {
   "Secure No Man's Land": "Points for controlling multiple objectives in No Man's Land."
 }
 
+interface PrimaryScoringOption {
+  label: string
+  points: number
+  timing: string
+  rounds: number[]
+}
+
+const R_ANY = [1, 2, 3, 4, 5]
+const R_1 = [1]
+const R_2_5 = [2, 3, 4, 5]
+const R_2_4 = [2, 3, 4]
+const R_5 = [5]
+const R_2_3 = [2, 3]
+const R_4_5 = [4, 5]
+
+const T_TURN = END_OF_YOUR_TURN
+const T_CMD = 'End of your Command phase (end of your turn in round 5)'
+const T_BATTLE_END = 'End of the battle'
+
+function countTiers(
+  rate: number,
+  rounds: number[],
+  timing: string,
+  labelFor: (n: number, plus: string) => string,
+  max = 4
+): PrimaryScoringOption[] {
+  return Array.from({ length: max }, (_, i) => {
+    const n = i + 1
+    const plus = n === max ? '+' : ''
+    return { label: labelFor(n, plus), points: rate * n, timing, rounds }
+  })
+}
+
+function objectiveTiers(rate: number, rounds: number[], timing: string, max = 4): PrimaryScoringOption[] {
+  return countTiers(
+    rate,
+    rounds,
+    timing,
+    (n, plus) => `Control ${n}${plus} objective${n > 1 ? 's' : ''} (excl. home)`,
+    max
+  )
+}
+
+// Scoring conditions summarized in our own words from the GDM 2026 primary mission cards (11th ed.),
+// not transcribed rule text. "For each X" style conditions are modeled as pre-multiplied count tiers
+// (1 / 2 / 3 / 4+) rather than a single flat checkbox, so ticking one tier reflects the real total.
+const PRIMARY_MISSION_SCORING: Record<string, PrimaryScoringOption[]> = {
+  'Battlefield Dominance': [
+    { label: 'Control more objectives than your opponent', points: 2, timing: T_TURN, rounds: [1, 2] },
+    ...objectiveTiers(3, R_2_5, T_CMD),
+    { label: 'Bonus: you also control your home objective', points: 2, timing: T_CMD, rounds: R_2_5 }
+  ],
+  'Immovable Object': [
+    { label: 'Control one or more central objectives', points: 3, timing: T_TURN, rounds: R_ANY },
+    ...objectiveTiers(5, R_2_4, T_CMD),
+    ...objectiveTiers(5, R_5, T_TURN)
+  ],
+  'Determined Acquisition': [
+    ...countTiers(
+      2,
+      R_ANY,
+      T_TURN,
+      (n, plus) => `${n}${plus} objective${n > 1 ? 's' : ''} you didn't control at the start of the turn (excl. home)`
+    ),
+    ...objectiveTiers(3, R_2_5, T_CMD),
+    { label: "Bonus: those objectives are in your opponent's territory", points: 3, timing: T_CMD, rounds: R_2_5 }
+  ],
+  'Purge and Secure': [
+    { label: 'One or more enemy units destroyed this turn by a friendly unit near an objective', points: 3, timing: T_TURN, rounds: R_ANY },
+    { label: 'One or more enemy units that started the turn near an objective were destroyed this turn', points: 3, timing: T_TURN, rounds: R_ANY },
+    ...objectiveTiers(4, R_2_5, T_CMD),
+    ...countTiers(
+      3,
+      R_2_5,
+      T_TURN,
+      (n, plus) => `${n}${plus} objective${n > 1 ? 's' : ''} you didn't control at the start of the turn (excl. home)`
+    )
+  ],
+  'Inescapable Dominion': [
+    { label: 'Control three or more objectives', points: 4, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control two or more objectives', points: 5, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Control more objectives than your opponent', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: "Control your opponent's home objective", points: 5, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  'Unstoppable Force': [
+    { label: 'One or more enemy units destroyed this turn', points: 3, timing: T_TURN, rounds: R_ANY },
+    ...objectiveTiers(4, R_2_5, T_CMD),
+    { label: 'Control one or more objectives you did not control at the start of the turn (excl. home)', points: 3, timing: T_TURN, rounds: R_2_5 },
+    { label: 'Control one or more central objectives', points: 5, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  Meatgrinder: [
+    { label: 'One or more enemy units destroyed this turn', points: 3, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'More enemy units destroyed this turn than friendly units destroyed last turn', points: 5, timing: T_TURN, rounds: R_2_5 },
+    { label: "Control your opponent's home objective", points: 5, timing: T_TURN, rounds: R_2_5 }
+  ],
+  Punishment: [
+    { label: 'One or more marked ("condemned") enemy units left the battlefield this turn', points: 5, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Control more objectives than your opponent', points: 5, timing: T_CMD, rounds: R_2_5 },
+    { label: "Control your opponent's home objective", points: 8, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  Consecrate: [
+    { label: 'One or two objectives are "consecrated"', points: 3, timing: T_TURN, rounds: R_ANY },
+    { label: 'Three or more objectives are "consecrated"', points: 6, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Control more objectives than your opponent', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Your opponent\'s home objective is "consecrated"', points: 5, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  "Destroyer's Wrath": [
+    { label: 'One or more enemy units destroyed this turn', points: 3, timing: T_TURN, rounds: R_ANY },
+    ...objectiveTiers(4, R_2_5, T_CMD),
+    { label: 'Control more objectives than your opponent', points: 6, timing: T_CMD, rounds: R_2_5 },
+    { label: 'More enemy units destroyed this turn than friendly units destroyed last turn', points: 4, timing: T_TURN, rounds: R_2_5 }
+  ],
+  'Gather Intel': [
+    { label: 'Control one or more central objectives', points: 6, timing: T_TURN, rounds: R_1 },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    ...countTiers(
+      7,
+      R_2_5,
+      T_TURN,
+      (n, plus) => `${n}${plus} friendly unit${n > 1 ? 's' : ''} completed the "Extract Intelligence" action this turn`
+    ),
+    { label: 'Three or more of your operation markers are on the battlefield', points: 5, timing: T_BATTLE_END, rounds: R_5 },
+    { label: "One of your operation markers is near your opponent's home objective", points: 5, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  'Reconnaissance Sweep': [
+    { label: 'Three or more friendly units spread across different table quarters, away from the centre', points: 3, timing: T_TURN, rounds: R_ANY },
+    { label: 'Four or more friendly units spread across different table quarters, away from the centre', points: 6, timing: T_TURN, rounds: R_ANY },
+    ...countTiers(1, R_ANY, T_TURN, (n, plus) => `${n}${plus} enemy unit${n > 1 ? 's' : ''} destroyed this turn`),
+    { label: 'Control one or more objectives (excl. home)', points: 3, timing: T_CMD, rounds: R_2_5 }
+  ],
+  'Surveil the Foe': [
+    { label: 'One or more enemy units were "surveilled" this turn', points: 4, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Control more objectives than your opponent', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: "None of your opponent's operation markers are on the battlefield", points: 5, timing: T_TURN, rounds: R_2_5 }
+  ],
+  Triangulation: [
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'One objective is "triangulated"', points: 3, timing: T_TURN, rounds: R_2_5 },
+    { label: 'Two objectives are "triangulated"', points: 6, timing: T_TURN, rounds: R_2_5 },
+    { label: 'Three or more objectives are "triangulated"', points: 10, timing: T_TURN, rounds: R_2_5 },
+    { label: 'Control four or more objectives', points: 10, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  'Search and Scour': [
+    { label: 'Control one or more central objectives', points: 3, timing: T_TURN, rounds: R_ANY },
+    { label: 'One or more enemy units that started the turn in a terrain area were destroyed this turn', points: 2, timing: T_TURN, rounds: R_ANY },
+    ...objectiveTiers(4, R_2_5, T_CMD),
+    { label: 'No enemy units are wholly within your territory', points: 5, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  'Secure Asset': [
+    { label: 'A friendly unit "secured the asset" this turn', points: 4, timing: T_TURN, rounds: R_ANY },
+    { label: 'One or more enemy units that started the turn near a central objective were destroyed this turn', points: 2, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Control three or more objectives', points: 4, timing: T_CMD, rounds: R_2_5 }
+  ],
+  'Vital Link': [
+    { label: 'Control one or more central objectives', points: 2, timing: T_TURN, rounds: R_ANY },
+    { label: 'Bonus: one of your operation markers is near one of those objectives', points: 1, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Bonus: one or more of those objectives is a central objective', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: "Control your opponent's home objective", points: 10, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  'Extract Relic': [
+    { label: 'A friendly unit performed a "sensor sweep" this turn', points: 4, timing: T_TURN, rounds: R_ANY },
+    { label: 'One or more enemy units that started the turn near an objective were destroyed this turn', points: 3, timing: T_TURN, rounds: R_ANY },
+    { label: "Only one of your opponent's operation markers is on the battlefield, isolated from enemies", points: 4, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: "Only one of your opponent's operation markers is on the battlefield, isolated from enemies", points: 5, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  'Vanguard Operation': [
+    { label: 'A friendly unit performed a "vanguard operation" this turn', points: 4, timing: T_TURN, rounds: R_ANY },
+    { label: 'One or more enemy units destroyed this turn', points: 2, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: "Control your opponent's home objective", points: 10, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  Sabotage: [
+    ...countTiers(3, R_ANY, T_TURN, (n, plus) => `${n}${plus} friendly unit${n > 1 ? 's' : ''} "committed sabotage" this turn`),
+    { label: "Bonus: those units are near an objective in your opponent's territory", points: 2, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 }
+  ],
+  Outmanoeuvre: [
+    { label: "Control your opponent's home objective", points: 10, timing: T_TURN, rounds: R_ANY },
+    ...objectiveTiers(4, R_1, T_TURN),
+    ...objectiveTiers(5, R_2_3, T_CMD),
+    ...objectiveTiers(6, R_4_5, T_TURN)
+  ],
+  'Death Trap': [
+    ...countTiers(2, R_ANY, T_TURN, (n, plus) => `${n}${plus} terrain area${n > 1 ? 's' : ''} "trapped" this turn`),
+    { label: 'Bonus: those terrain areas are objectives', points: 3, timing: T_TURN, rounds: R_ANY },
+    { label: 'One or more enemy units that started the turn in a trapped terrain area were destroyed this turn', points: 3, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 }
+  ],
+  'Delaying Action': [
+    ...countTiers(2, R_ANY, T_TURN, (n, plus) => `${n}${plus} enemy unit${n > 1 ? 's' : ''} destroyed this turn`),
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Control one or more central objectives and one or more expansion objectives', points: 3, timing: T_TURN, rounds: R_2_5 }
+  ],
+  'Locate and Deny': [
+    { label: 'One or more enemy units that started the turn near an objective were destroyed this turn', points: 4, timing: T_TURN, rounds: R_ANY },
+    { label: 'Only one of your operation markers is on the battlefield, isolated from enemies', points: 4, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Only one of your operation markers is on the battlefield, isolated from enemies', points: 5, timing: T_BATTLE_END, rounds: R_5 }
+  ],
+  'Smoke and Mirrors': [
+    ...countTiers(2, R_ANY, T_TURN, (n, plus) => `${n}${plus} objective${n > 1 ? 's' : ''} "decoyed"`),
+    { label: "Bonus: those objectives are in your opponent's territory", points: 2, timing: T_TURN, rounds: R_ANY },
+    { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 },
+    { label: 'Four or more objectives are "decoyed"', points: 10, timing: T_BATTLE_END, rounds: R_5 }
+  ]
+}
+
+// Short functional summaries in our own words, not card flavour text.
+const PRIMARY_MISSION_DESCRIPTIONS: Record<string, string> = {
+  'Battlefield Dominance': 'Score for holding more objectives than your opponent, then for every objective you control from round 2 on.',
+  'Immovable Object': 'Score for holding the central objectives, then for every objective you control from round 2 on.',
+  'Determined Acquisition': 'Score for objectives you newly take each turn, then for every objective you control from round 2 on.',
+  'Purge and Secure': 'Score for destroying enemies near objectives, then for every objective you control or newly take.',
+  'Inescapable Dominion': "Score for controlling several objectives at once, then a bonus for your opponent's home objective at the end.",
+  'Unstoppable Force': 'Score for destroying enemies, then for every objective you control from round 2 on.',
+  Meatgrinder: "Score for destroying enemies and out-killing your own previous round's losses.",
+  Punishment: 'Mark enemy units at the start of your turn, then score when those marked units are destroyed.',
+  Consecrate: 'Mark objectives when a unit destroys an enemy near them, then score for how many are marked.',
+  "Destroyer's Wrath": 'Score for destroying enemies and holding more objectives than your opponent.',
+  'Gather Intel': 'Score for holding the centre early, then for objectives controlled and units gathering intel.',
+  'Reconnaissance Sweep': 'Score for spreading friendly units across the table and for destroying enemies.',
+  'Surveil the Foe': 'Score for "surveilling" enemy units and for controlling objectives.',
+  Triangulation: 'Score for how many objectives you "triangulate", then a big bonus for controlling most objectives at the end.',
+  'Search and Scour': 'Score for holding the centre and destroying enemies near terrain, then for objectives controlled.',
+  'Secure Asset': 'Score for "securing the asset" and for objectives controlled.',
+  'Vital Link': "Score for holding central objectives with markers nearby, then for objectives controlled, then a big bonus for your opponent's home objective.",
+  'Extract Relic': 'Score for "sensor sweep" actions and objectives controlled, with a bonus at the end.',
+  'Vanguard Operation': "Score for \"vanguard operation\" actions and destroying enemies, with a big bonus for your opponent's home objective.",
+  Sabotage: 'Score for units that "committed sabotage", then for objectives controlled.',
+  Outmanoeuvre: "Score for objectives controlled, at an increasing rate each round, plus a big bonus for your opponent's home objective.",
+  'Death Trap': 'Score for "trapping" terrain areas and destroying enemies caught inside them.',
+  'Delaying Action': 'Score for destroying enemies, then for objectives controlled, then for holding a central and expansion objective together.',
+  'Locate and Deny': 'Score for destroying enemies near objectives and for keeping a lone operation marker safe.',
+  'Smoke and Mirrors': 'Score for "decoying" objectives, then for objectives controlled.'
+}
+
+function buildPrimaryOptions(name: string | null): PrimaryMissionOption[] {
+  if (!name) return []
+  const schema = PRIMARY_MISSION_SCORING[name] ?? []
+  return schema.map(o => ({
+    label: o.label,
+    points: o.points,
+    timing: o.timing,
+    rounds: o.rounds,
+    roundsCompleted: Array.from({ length: 5 }, () => false)
+  }))
+}
+
 const myDisposition = ref<Disposition | ''>('')
 const opponentDisposition = ref<Disposition | ''>('')
 
@@ -169,6 +425,28 @@ const opponentMissionName = computed(() => {
   if (!myDisposition.value || !opponentDisposition.value) return null
   return MISSION_MATRIX[opponentDisposition.value][myDisposition.value]
 })
+
+const myPrimaryOptions = ref<PrimaryMissionOption[]>(buildPrimaryOptions(myMissionName.value))
+const opponentPrimaryOptions = ref<PrimaryMissionOption[]>(buildPrimaryOptions(opponentMissionName.value))
+
+watch(myMissionName, name => {
+  myPrimaryOptions.value = buildPrimaryOptions(name)
+})
+watch(opponentMissionName, name => {
+  opponentPrimaryOptions.value = buildPrimaryOptions(name)
+})
+
+function primaryRoundPoints(options: PrimaryMissionOption[], round: number) {
+  return options.reduce((sum, o) => sum + (o.roundsCompleted[round - 1] ? o.points : 0), 0)
+}
+
+function primaryMissionTotal(options: PrimaryMissionOption[]) {
+  let total = 0
+  for (let round = 1; round <= 5; round++) {
+    total += Math.min(MAX_POINTS_PER_ROUND, primaryRoundPoints(options, round))
+  }
+  return total
+}
 
 const mySecondaries = ref<SecondaryEntry[]>([])
 const opponentSecondaries = ref<SecondaryEntry[]>([])
@@ -227,10 +505,14 @@ function clampRoundPoints(value: number | null) {
 }
 
 const myPrimaryTotal = computed(() =>
-  rounds.value.reduce((sum, r) => sum + Math.min(MAX_POINTS_PER_ROUND, r.myPrimary ?? 0), 0)
+  myMissionName.value
+    ? primaryMissionTotal(myPrimaryOptions.value)
+    : rounds.value.reduce((sum, r) => sum + Math.min(MAX_POINTS_PER_ROUND, r.myPrimary ?? 0), 0)
 )
 const opponentPrimaryTotal = computed(() =>
-  rounds.value.reduce((sum, r) => sum + Math.min(MAX_POINTS_PER_ROUND, r.opponentPrimary ?? 0), 0)
+  opponentMissionName.value
+    ? primaryMissionTotal(opponentPrimaryOptions.value)
+    : rounds.value.reduce((sum, r) => sum + Math.min(MAX_POINTS_PER_ROUND, r.opponentPrimary ?? 0), 0)
 )
 
 const mySecondaryTotal = computed(() => secondaryPoints(mySecondaries.value))
@@ -321,14 +603,20 @@ async function submitReport() {
           </div>
         </div>
         <div v-if="myMissionName && opponentMissionName" class="mt-4 grid gap-3 sm:grid-cols-2">
-          <div class="rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-sm text-wh-ink">
-            <p class="text-xs text-wh-mute">Your primary mission</p>
-            <p class="mt-1 font-semibold text-wh-gold">{{ myMissionName }}</p>
-          </div>
-          <div class="rounded-md border border-wh-gold/50 bg-wh-surface-alt p-3 text-sm text-wh-ink">
-            <p class="text-xs text-wh-mute">{{ opponentLabel }}'s primary mission</p>
-            <p class="mt-1 font-semibold text-wh-gold">{{ opponentMissionName }}</p>
-          </div>
+          <PrimaryMissionScoring
+            label="Your primary mission"
+            :name="myMissionName"
+            :description="PRIMARY_MISSION_DESCRIPTIONS[myMissionName] ?? ''"
+            :options="myPrimaryOptions"
+            :max-points-per-round="MAX_POINTS_PER_ROUND"
+          />
+          <PrimaryMissionScoring
+            :label="`${opponentLabel}'s primary mission`"
+            :name="opponentMissionName"
+            :description="PRIMARY_MISSION_DESCRIPTIONS[opponentMissionName] ?? ''"
+            :options="opponentPrimaryOptions"
+            :max-points-per-round="MAX_POINTS_PER_ROUND"
+          />
         </div>
       </section>
 
@@ -362,38 +650,46 @@ async function submitReport() {
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
         <h2 class="mb-1 text-lg font-medium text-wh-ink">Primary points per round</h2>
-        <p class="mb-4 text-xs text-wh-mute">Max {{ MAX_POINTS_PER_ROUND }} points per round.</p>
-        <div class="space-y-3">
-          <div v-for="(r, i) in rounds" :key="i" class="rounded-md border border-wh-border p-3">
-            <p class="mb-2 text-xs font-medium text-wh-mute">Round {{ i + 1 }}</p>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="mb-1 block text-xs text-wh-mute">Your primary</label>
-                <input
-                  v-model.number="r.myPrimary"
-                  type="number"
-                  min="0"
-                  :max="MAX_POINTS_PER_ROUND"
-                  inputmode="numeric"
-                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                  @change="r.myPrimary = clampRoundPoints(r.myPrimary)"
-                >
-              </div>
-              <div>
-                <label class="mb-1 block text-xs text-wh-mute">Opponent primary</label>
-                <input
-                  v-model.number="r.opponentPrimary"
-                  type="number"
-                  min="0"
-                  :max="MAX_POINTS_PER_ROUND"
-                  inputmode="numeric"
-                  class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                  @change="r.opponentPrimary = clampRoundPoints(r.opponentPrimary)"
-                >
+        <template v-if="!myMissionName">
+          <p class="mb-4 text-xs text-wh-mute">
+            Max {{ MAX_POINTS_PER_ROUND }} points per round. Pick a disposition for both players above to switch to
+            mission-based scoring checklists.
+          </p>
+          <div class="space-y-3">
+            <div v-for="(r, i) in rounds" :key="i" class="rounded-md border border-wh-border p-3">
+              <p class="mb-2 text-xs font-medium text-wh-mute">Round {{ i + 1 }}</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="mb-1 block text-xs text-wh-mute">Your primary</label>
+                  <input
+                    v-model.number="r.myPrimary"
+                    type="number"
+                    min="0"
+                    :max="MAX_POINTS_PER_ROUND"
+                    inputmode="numeric"
+                    class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+                    @change="r.myPrimary = clampRoundPoints(r.myPrimary)"
+                  >
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-wh-mute">Opponent primary</label>
+                  <input
+                    v-model.number="r.opponentPrimary"
+                    type="number"
+                    min="0"
+                    :max="MAX_POINTS_PER_ROUND"
+                    inputmode="numeric"
+                    class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
+                    @change="r.opponentPrimary = clampRoundPoints(r.opponentPrimary)"
+                  >
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </template>
+        <p v-else class="mb-4 text-xs text-wh-mute">
+          Tracked via the round checklists in the Disposition section above.
+        </p>
 
         <div class="mt-4 grid grid-cols-2 gap-4">
           <div class="rounded-md border border-wh-border bg-wh-surface-alt p-3">

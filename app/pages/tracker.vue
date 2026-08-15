@@ -493,27 +493,9 @@ function secondaryPoints(list: SecondaryEntry[]) {
   return total
 }
 
-interface RoundScore {
-  myPrimary: number | null
-  opponentPrimary: number | null
-}
-
-const rounds = ref<RoundScore[]>(Array.from({ length: 5 }, () => ({ myPrimary: null, opponentPrimary: null })))
-
-function clampRoundPoints(value: number | null) {
-  if (value == null) return value
-  return Math.max(0, Math.min(MAX_POINTS_PER_ROUND, value))
-}
-
-const myPrimaryTotal = computed(() =>
-  myMissionName.value
-    ? primaryMissionTotal(myPrimaryOptions.value)
-    : rounds.value.reduce((sum, r) => sum + Math.min(MAX_POINTS_PER_ROUND, r.myPrimary ?? 0), 0)
-)
+const myPrimaryTotal = computed(() => (myMissionName.value ? primaryMissionTotal(myPrimaryOptions.value) : 0))
 const opponentPrimaryTotal = computed(() =>
-  opponentMissionName.value
-    ? primaryMissionTotal(opponentPrimaryOptions.value)
-    : rounds.value.reduce((sum, r) => sum + Math.min(MAX_POINTS_PER_ROUND, r.opponentPrimary ?? 0), 0)
+  opponentMissionName.value ? primaryMissionTotal(opponentPrimaryOptions.value) : 0
 )
 
 const mySecondaryTotal = computed(() => secondaryPoints(mySecondaries.value))
@@ -663,46 +645,10 @@ async function submitReport() {
       </section>
 
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
-        <h2 class="mb-1 text-lg font-medium text-wh-ink">Primary points per round</h2>
-        <template v-if="!myMissionName">
-          <p class="mb-4 text-xs text-wh-mute">
-            Max {{ MAX_POINTS_PER_ROUND }} points per round. Pick a disposition for both players above to switch to
-            mission-based scoring checklists.
-          </p>
-          <div class="space-y-3">
-            <div v-for="(r, i) in rounds" :key="i" class="rounded-md border border-wh-border p-3">
-              <p class="mb-2 text-xs font-medium text-wh-mute">Round {{ i + 1 }}</p>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="mb-1 block text-xs text-wh-mute">Your primary</label>
-                  <input
-                    v-model.number="r.myPrimary"
-                    type="number"
-                    min="0"
-                    :max="MAX_POINTS_PER_ROUND"
-                    inputmode="numeric"
-                    class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                    @change="r.myPrimary = clampRoundPoints(r.myPrimary)"
-                  >
-                </div>
-                <div>
-                  <label class="mb-1 block text-xs text-wh-mute">Opponent primary</label>
-                  <input
-                    v-model.number="r.opponentPrimary"
-                    type="number"
-                    min="0"
-                    :max="MAX_POINTS_PER_ROUND"
-                    inputmode="numeric"
-                    class="w-full rounded-md border border-wh-border bg-wh-surface-alt px-3 py-2 text-wh-ink outline-none focus:border-wh-accent"
-                    @change="r.opponentPrimary = clampRoundPoints(r.opponentPrimary)"
-                  >
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-        <p v-else class="mb-4 text-xs text-wh-mute">
-          Tracked via the round checklists in the Disposition section above.
+        <h2 class="mb-1 text-lg font-medium text-wh-ink">Primary points</h2>
+        <p class="mb-4 text-xs text-wh-mute">
+          <template v-if="myMissionName">Tracked via the round checklists in the Disposition section above.</template>
+          <template v-else>Pick a disposition for both players above to track primary scoring.</template>
         </p>
 
         <div class="mt-4 grid grid-cols-2 gap-4">

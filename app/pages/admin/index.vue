@@ -38,7 +38,7 @@ const {
 } = useLeague()
 
 const phaseStatusLabels: Record<string, string> = {
-  played: 'Spelat',
+  played: 'Lottad',
   waiting: 'Väntar på match',
   not_ready: 'Inte redo'
 }

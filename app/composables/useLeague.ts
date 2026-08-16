@@ -324,6 +324,27 @@ export function useLeague() {
     await refresh()
   }
 
+  type PhaseStatus = 'played' | 'waiting' | 'not_ready'
+
+  function phaseStatusForUser(userId: string): PhaseStatus {
+    if (!selectedLeague.value) return 'not_ready'
+    const phase = selectedLeague.value.current_phase
+    const hasMatch = matches.value.some(
+      m => m.phase_number === phase && (m.player1_id === userId || m.player2_id === userId)
+    )
+    if (hasMatch) return 'played'
+    const hasSignup = signups.value.some(s => s.user_id === userId && s.phase_number === phase)
+    return hasSignup ? 'waiting' : 'not_ready'
+  }
+
+  const phaseStatusCounts = computed(() => {
+    const counts = { played: 0, waiting: 0, not_ready: 0 }
+    for (const m of members.value) {
+      counts[phaseStatusForUser(m.user_id)]++
+    }
+    return counts
+  })
+
   function paintingPointsFor(userId: string) {
     const row = paintedUnits.value.find(p => p.user_id === userId)
     if (!row) return 0
@@ -414,6 +435,8 @@ export function useLeague() {
     historyForUser,
     disputedMatches,
     myPhaseMatchCount,
+    phaseStatusForUser,
+    phaseStatusCounts,
     scoreboard,
     paintingPointsFor,
     setPaintedUnit,

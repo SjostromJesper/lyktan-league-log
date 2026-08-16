@@ -32,8 +32,21 @@ const {
   resolveDispute,
   paintingPointsFor,
   setPaintedUnit,
-  paintedUnits
+  paintedUnits,
+  phaseStatusForUser,
+  phaseStatusCounts
 } = useLeague()
+
+const phaseStatusLabels: Record<string, string> = {
+  played: 'Spelat',
+  waiting: 'Väntar på match',
+  not_ready: 'Inte redo'
+}
+const phaseStatusClasses: Record<string, string> = {
+  played: 'bg-emerald-500/10 text-emerald-400',
+  waiting: 'bg-wh-gold/10 text-wh-gold',
+  not_ready: 'bg-wh-accent/10 text-wh-accent'
+}
 const { refresh: refreshPaintedUnitPhotos, photoFor, revokeUnit } = usePaintedUnitPhotos()
 
 onMounted(async () => {
@@ -379,6 +392,10 @@ async function handleTogglePainted(userId: string, unit: PaintedUnitKey) {
               Fas {{ selectedLeague.current_phase }} av {{ selectedLeague.phase_count }} ·
               {{ selectedLeague.matches_per_phase }} matcher/fas
             </p>
+            <p v-if="members.length" class="mt-1 text-xs text-wh-mute">
+              {{ phaseStatusCounts.waiting + phaseStatusCounts.not_ready }} utan match denna fas
+              <span v-if="phaseStatusCounts.not_ready">· {{ phaseStatusCounts.not_ready }} inte redo</span>
+            </p>
           </template>
           <p v-else class="mt-2 text-sm text-wh-mute">Skapa en liga för att komma igång.</p>
         </div>
@@ -521,6 +538,14 @@ async function handleTogglePainted(userId: string, unit: PaintedUnitKey) {
         >
           <span class="text-wh-ink">{{ profileName(m.user_id) }}</span>
           <div class="flex flex-wrap items-center gap-3">
+            <span
+              :class="[
+                'rounded-full px-2 py-0.5 text-xs font-medium',
+                phaseStatusClasses[phaseStatusForUser(m.user_id)]
+              ]"
+            >
+              {{ phaseStatusLabels[phaseStatusForUser(m.user_id)] }}
+            </span>
             <div class="flex items-center gap-1" title="Målade units">
               <button
                 v-for="(unit, index) in PAINTED_UNIT_KEYS"

@@ -5,6 +5,7 @@ import type { TrackerMatch } from '~/types'
 import { primaryMissionTotal } from '~/utils/primaryScoring'
 
 const { myActiveMatch, reportMatch } = useLeague()
+const { profiles, refresh: refreshProfiles } = useProfiles()
 const currentUserId = useCurrentUserId()
 const router = useRouter()
 const {
@@ -553,6 +554,22 @@ watch(hasReportableMatch, val => {
   if (!val) applyToMatch.value = false
 })
 
+const myDisplayName = computed(() => {
+  if (!currentUserId.value) return 'You'
+  return profiles.value.find(p => p.id === currentUserId.value)?.name || 'You'
+})
+
+const opponentDisplayName = computed(() => {
+  if (!myActiveMatch.value || !currentUserId.value) return 'Opponent'
+  const opponentId =
+    myActiveMatch.value.player1_id === currentUserId.value ? myActiveMatch.value.player2_id : myActiveMatch.value.player1_id
+  return profiles.value.find(p => p.id === opponentId)?.name || 'Opponent'
+})
+
+// Only shown once the player ticks "apply to match" — before that, the rest of the
+// scoring UI stays generic even if a reportable match happens to exist.
+const opponentLabel = computed(() => (applyToMatch.value && hasReportableMatch.value ? opponentDisplayName.value : 'Opponent'))
+
 const reportError = ref('')
 const reportSubmitting = ref(false)
 
@@ -676,7 +693,7 @@ watch([myDisposition, opponentDisposition, applyToMatch], scheduleSave)
 watch([myPrimaryOptions, opponentPrimaryOptions, mySecondaries, opponentSecondaries], scheduleSave, { deep: true })
 
 onMounted(async () => {
-  await refreshMatches()
+  await Promise.all([refreshMatches(), refreshProfiles()])
   const persisted = loadPersistedMatchId()
   const match = persisted ? savedMatches.value.find(m => m.id === persisted) : null
   if (match) await openMatch(match)
@@ -766,7 +783,7 @@ onMounted(async () => {
 
     <template v-else>
     <p class="text-sm text-wh-mute">
-      <template v-if="hasReportableMatch">Vs Opponent</template>
+      <template v-if="hasReportableMatch">Vs {{ opponentDisplayName }}</template>
       <template v-else>Standalone tracking — not linked to a league match right now.</template>
     </p>
 
@@ -794,7 +811,7 @@ onMounted(async () => {
                 : 'border-wh-border bg-wh-surface-alt'
           ]"
         >
-          <p class="text-xs text-wh-mute">You</p>
+          <p class="truncate text-xs text-wh-mute">{{ myDisplayName }}</p>
           <p class="text-xl font-semibold text-wh-ink">{{ myTotal }}</p>
           <p class="text-xs text-wh-mute">{{ myPrimaryTotal }} primary + {{ mySecondaryTotal }} secondary</p>
         </div>
@@ -809,7 +826,7 @@ onMounted(async () => {
                 : 'border-wh-border bg-wh-surface-alt'
           ]"
         >
-          <p class="truncate text-xs text-wh-mute">Opponent</p>
+          <p class="truncate text-xs text-wh-mute">{{ opponentLabel }}</p>
           <p class="text-xl font-semibold text-wh-ink">{{ opponentTotal }}</p>
           <p class="text-xs text-wh-mute">{{ opponentPrimaryTotal }} primary + {{ opponentSecondaryTotal }} secondary</p>
         </div>
@@ -834,7 +851,7 @@ onMounted(async () => {
         </p>
         <div class="grid gap-3 sm:grid-cols-2">
           <div :class="swapSides ? 'order-2' : 'order-1'">
-            <label class="mb-1 block text-sm text-wh-mute">Your disposition</label>
+            <label class="mb-1 block text-sm text-wh-mute">{{ myDisplayName }}'s disposition</label>
             <select
               v-model="myDisposition"
               :disabled="dispositionsLocked"
@@ -845,7 +862,7 @@ onMounted(async () => {
             </select>
           </div>
           <div :class="swapSides ? 'order-1' : 'order-2'">
-            <label class="mb-1 block text-sm text-wh-mute">Opponent's disposition</label>
+            <label class="mb-1 block text-sm text-wh-mute">{{ opponentLabel }}'s disposition</label>
             <select
               v-model="opponentDisposition"
               :disabled="dispositionsLocked"
@@ -859,7 +876,7 @@ onMounted(async () => {
         <div v-if="myMissionName && opponentMissionName" class="mt-4 grid gap-3 sm:grid-cols-2">
           <PrimaryMissionScoring
             :order="swapSides ? 2 : 1"
-            label="Your primary mission"
+            :label="`${myDisplayName}'s primary mission`"
             :name="myMissionName"
             :description="PRIMARY_MISSION_DESCRIPTIONS[myMissionName] ?? ''"
             :options="myPrimaryOptions"
@@ -867,7 +884,7 @@ onMounted(async () => {
           />
           <PrimaryMissionScoring
             :order="swapSides ? 1 : 2"
-            label="Opponent's primary mission"
+            :label="`${opponentLabel}'s primary mission`"
             :name="opponentMissionName"
             :description="PRIMARY_MISSION_DESCRIPTIONS[opponentMissionName] ?? ''"
             :options="opponentPrimaryOptions"
@@ -885,7 +902,7 @@ onMounted(async () => {
         <div class="grid gap-4 sm:grid-cols-2">
           <SecondaryTracker
             :class="swapSides ? 'order-2' : 'order-1'"
-            label="Your secondaries"
+            :label="`${myDisplayName}'s secondaries`"
             :entries="mySecondaries"
             :available="availableSecondariesFor(mySecondaries)"
             :max-points-per-round="MAX_POINTS_PER_ROUND"
@@ -895,7 +912,7 @@ onMounted(async () => {
           />
           <SecondaryTracker
             :class="swapSides ? 'order-1' : 'order-2'"
-            label="Opponent's secondaries"
+            :label="`${opponentLabel}'s secondaries`"
             :entries="opponentSecondaries"
             :available="availableSecondariesFor(opponentSecondaries)"
             :max-points-per-round="MAX_POINTS_PER_ROUND"
@@ -910,7 +927,7 @@ onMounted(async () => {
         <h2 class="mb-1 text-lg font-medium text-wh-ink">Report to league</h2>
         <label v-if="hasReportableMatch" class="mt-2 flex items-center gap-2 text-sm text-wh-ink">
           <input v-model="applyToMatch" type="checkbox" class="accent-wh-accent">
-          Apply the final score to my ongoing match against Opponent
+          Apply the final score to my ongoing match against {{ opponentDisplayName }}
         </label>
         <p v-else class="mt-2 text-sm text-wh-mute">
           No ongoing league match to report to right now — this tracking session isn't saved anywhere.

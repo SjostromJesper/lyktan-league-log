@@ -195,6 +195,9 @@ async function handleDelete(leagueId: string) {
   }
 }
 
+// Tracker stats modal
+const showTrackerStatsModal = ref(false)
+
 // Create account modal
 const showAccountModal = ref(false)
 
@@ -352,6 +355,13 @@ async function handleTogglePainted(userId: string, unit: PaintedUnitKey) {
     <div class="flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-2xl font-semibold text-wh-ink">Admin</h1>
       <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="rounded-md border border-wh-border px-3 py-1.5 text-sm text-wh-ink hover:border-wh-accent"
+          @click="showTrackerStatsModal = true"
+        >
+          📊 Score keeper
+        </button>
         <button
           type="button"
           class="rounded-md border border-wh-border px-3 py-1.5 text-sm text-wh-ink hover:border-wh-accent"
@@ -693,6 +703,8 @@ async function handleTogglePainted(userId: string, unit: PaintedUnitKey) {
         <li v-if="!profiles.length" class="text-sm text-wh-mute">Inga konton skapade än.</li>
       </ul>
     </CollapsibleSection>
+
+    <TrackerStatsModal v-if="showTrackerStatsModal" @close="showTrackerStatsModal = false" />
 
     <PaintedUnitReviewModal
       v-if="reviewingUnit && selectedLeague && pendingPhoto(reviewingUnit.userId, reviewingUnit.unit)"

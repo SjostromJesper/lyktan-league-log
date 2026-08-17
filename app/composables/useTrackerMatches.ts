@@ -2,6 +2,31 @@ import type { TrackerMatch } from '~/types'
 
 export const TRACKER_MATCH_RETENTION_DAYS = 3
 
+export function useTrackerStats() {
+  const supabase = useSupabaseClient()
+  const rows = useState<TrackerMatch[]>('tracker-stats-rows', () => [])
+  const loaded = useState('tracker-stats-loaded', () => false)
+  const loading = ref(false)
+  const error = ref('')
+
+  async function refresh() {
+    loading.value = true
+    error.value = ''
+    try {
+      const { data, error: err } = await supabase.from('tracker_matches').select('*')
+      if (err) throw new Error(err.message)
+      rows.value = (data as TrackerMatch[]) ?? []
+      loaded.value = true
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Något gick fel.'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { rows, loaded, loading, error, refresh }
+}
+
 export function useTrackerMatches() {
   const supabase = useSupabaseClient()
   const currentUserId = useCurrentUserId()

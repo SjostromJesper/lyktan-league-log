@@ -405,7 +405,7 @@ const PRIMARY_MISSION_SCORING: Record<string, PrimaryScoringOption[]> = {
       3,
       R_ANY,
       T_TURN,
-      (n, plus) => `Bonus: ${n}${plus} of those trapped terrain area${n > 1 ? 's are' : ' is'} an objective`
+      (n, plus) => `Bonus: ${n}${plus} of those trapped terrain area${n > 1 ? 's are objectives' : ' is an objective'}`
     ),
     { label: 'One or more enemy units that started the turn in a trapped terrain area were destroyed this turn', points: 3, timing: T_TURN, rounds: R_ANY },
     { label: 'Control one or more objectives (excl. home)', points: 4, timing: T_CMD, rounds: R_2_5 }

@@ -906,8 +906,9 @@ onMounted(async () => {
       <section class="rounded-lg border border-wh-border bg-wh-surface p-6">
         <h2 class="mb-1 text-lg font-medium text-wh-ink">Secondaries (optional)</h2>
         <p class="mb-4 text-xs text-wh-mute">
-          Tick off which rounds you completed each secondary and it's summed up automatically. Discard a secondary
-          to grey it out and zero its points. Max {{ MAX_POINTS_PER_ROUND }} total secondary points per round.
+          Mark the round you achieved a secondary — with Tactical Secondary Missions it's discarded once scored, so
+          only one round can be ticked per secondary. Discard a secondary you're dropping to grey it out and zero
+          its points.
         </p>
         <div class="grid gap-4 sm:grid-cols-2">
           <SecondaryTracker

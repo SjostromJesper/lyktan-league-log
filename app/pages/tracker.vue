@@ -105,10 +105,15 @@ const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number;
     { label: 'Beacon unit on the battlefield, outside my territory', points: 5, timing: END_OF_OPPONENT_TURN_OR_R5 }
   ],
   'Behind Enemy Lines': [
-    { label: "Each unit wholly within opponent's deployment zone (max 5p)", points: 3, timing: END_OF_YOUR_TURN }
+    { label: "1 unit wholly within opponent's deployment zone", points: 3, timing: END_OF_YOUR_TURN },
+    { label: "2+ units wholly within opponent's deployment zone", points: 5, timing: END_OF_YOUR_TURN }
   ],
   'Bring it Down': [{ label: '1+ enemy model (W10+) destroyed this turn', points: 5, timing: END_OF_EITHER_TURN }],
-  'Burden of Trust': [{ label: 'Each objective guarded (max 5p)', points: 2, timing: END_OF_OPPONENT_TURN_OR_R5 }],
+  'Burden of Trust': [
+    { label: '1 objective guarded', points: 2, timing: END_OF_OPPONENT_TURN_OR_R5 },
+    { label: '2 objectives guarded', points: 4, timing: END_OF_OPPONENT_TURN_OR_R5 },
+    { label: '3+ objectives guarded', points: 5, timing: END_OF_OPPONENT_TURN_OR_R5 }
+  ],
   'Centre Ground': [
     { label: 'Unit within 3" of centre, no enemy within 3"', points: 3, timing: END_OF_YOUR_TURN },
     { label: 'Unit within 3" of centre, no enemy within 6"', points: 5, timing: END_OF_YOUR_TURN }
@@ -132,7 +137,11 @@ const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number;
   'Forward Position': [
     { label: "Control opponent's home objective and/or each expansion objective", points: 5, timing: END_OF_YOUR_TURN }
   ],
-  'No Prisoners': [{ label: 'Each enemy unit destroyed this turn (max 5p)', points: 2, timing: END_OF_EITHER_TURN }],
+  'No Prisoners': [
+    { label: '1 enemy unit destroyed this turn', points: 2, timing: END_OF_EITHER_TURN },
+    { label: '2 enemy units destroyed this turn', points: 4, timing: END_OF_EITHER_TURN },
+    { label: '3+ enemy units destroyed this turn', points: 5, timing: END_OF_EITHER_TURN }
+  ],
   Outflank: [
     { label: '1+ unit within 6" of a battlefield edge, outside my territory', points: 3, timing: END_OF_YOUR_TURN },
     {
@@ -142,7 +151,8 @@ const DEFAULT_SECONDARY_OPTIONS: Record<string, { label: string; points: number;
     }
   ],
   'Overwhelming Force': [
-    { label: 'Each enemy unit at an objective destroyed this turn (max 5p)', points: 3, timing: END_OF_EITHER_TURN }
+    { label: '1 enemy unit at an objective destroyed this turn', points: 3, timing: END_OF_EITHER_TURN },
+    { label: '2+ enemy units at an objective destroyed this turn', points: 5, timing: END_OF_EITHER_TURN }
   ],
   Plunder: [{ label: 'Terrain feature plundered this turn', points: 5, timing: END_OF_YOUR_TURN }],
   "Secure No Man's Land": [{ label: "Control 2+ objectives in No Man's Land", points: 5, timing: END_OF_YOUR_TURN }]
